@@ -298,11 +298,14 @@ export class ServerManager {
     // Use default cache directory to avoid Windows permission issues.
     try {
       const configPath = path.join(workingDir, 'config.json')
+      const config = vscode.workspace.getConfiguration('lemond')
+      const maxLoadedModels = config.get<number>('maxLoadedModels', 1)
       const configData = {
-        port: this._port
+        port: this._port,
+        max_loaded_models: maxLoadedModels
       }
       fs.writeFileSync(configPath, JSON.stringify(configData, null, 2), 'utf8')
-      Logger.info(`Wrote config.json with port ${this._port}`)
+      Logger.info(`Wrote config.json with port ${this._port} and max_loaded_models ${maxLoadedModels}`)
     } catch (err) {
       Logger.error('Failed to write config.json', err)
     }

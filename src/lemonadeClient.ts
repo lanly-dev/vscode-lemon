@@ -144,6 +144,14 @@ export class LemonadeClient {
     Logger.info(`Model deleted: ${modelName}`)
   }
 
+  /** Update server configuration (e.g., max_loaded_models). */
+  async updateConfig(config: Record<string, unknown>): Promise<void> {
+    Logger.info(`Updating server configuration: ${JSON.stringify(config)}`)
+    const { status, data } = await this.request('POST', '/v1/config', config)
+    if (status !== 200) throw new Error(`Failed to update config: ${status} ${data}`)
+    Logger.info('Server configuration updated successfully')
+  }
+
   /**
    * Send a chat completion request (non-streaming).
    */

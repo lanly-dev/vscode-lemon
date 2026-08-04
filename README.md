@@ -54,8 +54,9 @@ The Lemonade chat participant supports the following slash commands:
 | `lemond.autoStart` | `false` | Automatically start the server when the extension activates |
 | `lemond.useExistingServer` | `true` | Connect to an existing Lemonade Server if one is already running on the configured port |
 | `lemond.defaultModel` | `""` | Default model to use for chat |
-| `lemond.binaryVersion` | `"latest"` | Lemonade Server binary version to download |
+| `lemond.binaryVersion` | `"latest"` | Lemonade Server binary version to download (e.g., '11.5.1' or 'latest') |
 | `lemond.customServerUrl` | `""` | Custom Lemonade Server URL to use for chat (e.g., http://localhost:13305) |
+| `lemond.maxLoadedModels` | `1` | Maximum number of models that can be loaded simultaneously for the embedded server. Use `-1` for unlimited. |
 
 ## Server Selection
 
@@ -75,6 +76,7 @@ Shows the currently selected server (either standalone or embedded):
 - **Status** - Running/Starting/Stopped/Error with color-coded icons
 - **Server URL** - the address of the server
 - **Version** - the installed Lemonade Server binary version (embedded only)
+- **Max Loaded Models** - the maximum number of models that can be loaded simultaneously (configurable for embedded server via settings)
 - **Loaded Models** - expandable section showing currently loaded models with busy/idle status
 - **Available Models** - expandable section listing all available models with load status
 

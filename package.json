@@ -161,6 +161,11 @@
           "type": "string",
           "default": "",
           "description": "Custom Lemonade Server URL to use for chat (e.g., http://localhost:13305)"
+        },
+        "lemond.maxLoadedModels": {
+          "type": "number",
+          "default": 1,
+          "description": "Maximum number of models that can be loaded simultaneously for the embedded server. Use -1 for unlimited."
         }
       }
     }

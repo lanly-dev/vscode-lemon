@@ -16,6 +16,7 @@ interface ServerInstance {
   health?: HealthResponse
   models?: LemonadeModel[]
   error?: string
+  maxLoadedModels?: number
 }
 
 /**
@@ -179,6 +180,21 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
       items.push(versionItem)
     }
 
+    // Max loaded models
+    if (server.maxLoadedModels !== undefined) {
+      const maxModelsText = server.maxLoadedModels === -1
+        ? 'Unlimited'
+        : String(server.maxLoadedModels)
+      const maxModelsItem = new vscode.TreeItem(
+        `Max Loaded Models: ${maxModelsText}`,
+        vscode.TreeItemCollapsibleState.None
+      )
+      maxModelsItem.iconPath = new vscode.ThemeIcon('stack')
+      const configLabel = server.isOwn ? ' (configured in settings)' : ''
+      maxModelsItem.tooltip = `Maximum models that can be loaded simultaneously${configLabel}`
+      items.push(maxModelsItem)
+    }
+
     // Error message if any
     if (server.error) {
       const errorItem = new vscode.TreeItem(
@@ -295,7 +311,8 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
         isOwn: false,
         status: 'running',
         health,
-        models
+        models,
+        maxLoadedModels: health.all_models_loaded.length
       }
     } catch {
       this.standaloneServer = {
@@ -312,6 +329,8 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
       try {
         const health = await this.client.getHealth()
         const models = await this.client.listModels()
+        const config = vscode.workspace.getConfiguration('lemond')
+        const maxLoadedModels = config.get<number>('maxLoadedModels', 1)
         this.lemondServer = {
           id: 'lemond',
           name: 'lemond (Embedded)',
@@ -320,7 +339,8 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
           status: 'running',
           version: this.binaryManager.getInstalledVersion() ?? undefined,
           health,
-          models
+          models,
+          maxLoadedModels
         }
       } catch (err) {
         this.lemondServer = {
@@ -334,13 +354,16 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
         }
       }
     } else {
+      const config = vscode.workspace.getConfiguration('lemond')
+      const maxLoadedModels = config.get<number>('maxLoadedModels', 1)
       this.lemondServer = {
         id: 'lemond',
         name: 'lemond (Embedded)',
         url: this.serverManager.url,
         isOwn: true,
         status: this.serverManager.status,
-        version: this.binaryManager.getInstalledVersion() ?? undefined
+        version: this.binaryManager.getInstalledVersion() ?? undefined,
+        maxLoadedModels
       }
     }
   }
