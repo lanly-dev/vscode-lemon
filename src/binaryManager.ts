@@ -5,7 +5,7 @@ import { exec } from 'child_process'
 import { promisify } from 'util'
 import * as vscode from 'vscode'
 import { Logger } from './logger'
-import type { GitHubRelease } from './types'
+import type { GitHubRelease } from './interfaces'
 
 const execAsync = promisify(exec)
 

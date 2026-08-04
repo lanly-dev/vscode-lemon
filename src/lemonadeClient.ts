@@ -6,7 +6,7 @@ import type {
   ChatMessage,
   HealthResponse,
   LemonadeModel
-} from './types'
+} from './interfaces'
 
 /**
  * HTTP client for the Lemonade Server API.

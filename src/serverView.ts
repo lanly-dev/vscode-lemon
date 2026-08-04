@@ -3,7 +3,7 @@ import { Logger } from './logger'
 import { LemonadeClient } from './lemonadeClient'
 import { ServerManager } from './serverManager'
 import { BinaryManager } from './binaryManager'
-import type { HealthResponse, LemonadeModel } from './types'
+import type { HealthResponse, LemonadeModel } from './interfaces'
 
 /** A server instance shown in the tree view. */
 interface ServerInstance {

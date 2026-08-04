@@ -2,7 +2,7 @@ import * as vscode from 'vscode'
 import { Logger } from './logger'
 import { LemonadeClient } from './lemonadeClient'
 import { ServerManager } from './serverManager'
-import type { ChatMessage } from './types'
+import type { ChatMessage } from './interfaces'
 
 /**
  * Handles VS Code chat requests by forwarding them to the Lemonade Server.

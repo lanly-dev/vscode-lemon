@@ -5,7 +5,7 @@ import * as vscode from 'vscode'
 import { Logger } from './logger'
 import { BinaryManager } from './binaryManager'
 import { LemonadeClient } from './lemonadeClient'
-import type { ServerStatus } from './types'
+import type { ServerStatus } from './interfaces'
 
 /**
  * Manages the Lemonade Server process lifecycle.
