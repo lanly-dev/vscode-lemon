@@ -45,8 +45,7 @@ export class ChatParticipant {
   /** Get the model to use for chat. */
   private async getModel(): Promise<string | undefined> {
     // Check if a model is already selected
-    if (this.selectedModel)
-      return this.selectedModel
+    if (this.selectedModel) return this.selectedModel
 
     // Check config for default model
     const config = vscode.workspace.getConfiguration('lemond')
@@ -58,8 +57,7 @@ export class ChatParticipant {
     }
 
     // Try to get loaded models from the server
-    if (this.serverManager.status !== 'running')
-      return undefined
+    if (this.serverManager.status !== 'running') return undefined
 
     try {
       const health = await this.client.getHealth()
@@ -202,30 +200,24 @@ export class ChatParticipant {
         // Get the response text
         const responseText = responseTurn.response
           .map((part) => {
-            if (typeof part === 'string')
-              return part
-            if (part && typeof part === 'object' && 'value' in part)
-              return String(part.value)
+            if (typeof part === 'string') return part
+            if (part && typeof part === 'object' && 'value' in part) return String(part.value)
             return ''
           })
           .join('')
-        if (responseText)
-          history.push({ role: 'assistant', content: responseText })
+        if (responseText) history.push({ role: 'assistant', content: responseText })
       }
     }
-
     return history
   }
 
   /** Get the active editor's content as context. */
   private getEditorContext(): string | undefined {
     const editor = vscode.window.activeTextEditor
-    if (!editor)
-      return undefined
+    if (!editor) return undefined
 
     const selection = editor.selection
-    if (selection && !selection.isEmpty)
-      return editor.document.getText(selection)
+    if (selection && !selection.isEmpty) return editor.document.getText(selection)
 
     // Use entire document if no selection
     return editor.document.getText()

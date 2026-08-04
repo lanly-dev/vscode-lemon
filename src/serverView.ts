@@ -36,9 +36,7 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
   ) {
     this.client = new LemonadeClient(serverManager.port)
 
-    serverManager.onStatusChange(() => {
-      this.refresh()
-    })
+    serverManager.onStatusChange(() =>  this.refresh())
   }
 
   /** Refresh the tree view. */
@@ -87,19 +85,15 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
 
   /** Get children for a specific element. */
   private getChildrenForElement(element: vscode.TreeItem): vscode.TreeItem[] {
-    if (element.contextValue === 'LEMOND_SERVER_HEADER')
-      return this.getServerChildren(this._activeServer)
-    if (element.contextValue === 'LEMOND_LOADED_HEADER')
-      return this.getLoadedModelChildren(element)
-    if (element.contextValue === 'LEMOND_MODELS_HEADER')
-      return this.getModelChildren(element)
+    if (element.contextValue === 'LEMOND_SERVER_HEADER') return this.getServerChildren(this._activeServer)
+    if (element.contextValue === 'LEMOND_LOADED_HEADER') return this.getLoadedModelChildren(element)
+    if (element.contextValue === 'LEMOND_MODELS_HEADER') return this.getModelChildren(element)
     return []
   }
 
   /** Get children for a server instance. */
   private getServerChildren(server: ServerInstance | null): vscode.TreeItem[] {
-    if (!server)
-      return []
+    if (!server) return []
 
     const items: vscode.TreeItem[] = []
 
@@ -178,7 +172,6 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
       noModels.tooltip = 'Pull a model using the "Lemonade: Pull Model" command'
       items.push(noModels)
     }
-
     return items
   }
 
@@ -204,8 +197,7 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
   /** Get available model children. */
   private getModelChildren(element: vscode.TreeItem): vscode.TreeItem[] {
     const server = this.findServerByTooltip(element.tooltip)
-    if (!server?.models)
-      return []
+    if (!server?.models) return []
 
     const loadedIds = new Set(
       server.health?.all_models_loaded.map((m) => m.model_name) ?? []
@@ -231,10 +223,8 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
   /** Find a server instance by its tooltip id. */
   private findServerByTooltip(tooltip: vscode.TreeItem['tooltip']): ServerInstance | null {
     const id = typeof tooltip === 'string' ? tooltip : ''
-    if (this.standaloneServer?.id === id)
-      return this.standaloneServer
-    if (this.lemondServer?.id === id)
-      return this.lemondServer
+    if (this.standaloneServer?.id === id) return this.standaloneServer
+    if (this.lemondServer?.id === id) return this.lemondServer
     return null
   }
 

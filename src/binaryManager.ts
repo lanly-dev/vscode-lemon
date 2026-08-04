@@ -37,8 +37,7 @@ export class BinaryManager {
 
   /** Check if the binary exists. */
   isBinaryInstalled(): boolean {
-    if (fs.existsSync(this.binaryPath))
-      return true
+    if (fs.existsSync(this.binaryPath)) return true
     // Check if the binary exists in a subdirectory (from a previous extraction)
     const isWindows = process.platform === 'win32'
     const lemondName = isWindows ? 'lemond.exe' : 'lemond'
@@ -48,8 +47,7 @@ export class BinaryManager {
   /** Get the installed version, or null if not installed. */
   getInstalledVersion(): string | null {
     const versionFile = path.join(this.binaryDir, '.version')
-    if (fs.existsSync(versionFile))
-      return fs.readFileSync(versionFile, 'utf8').trim()
+    if (fs.existsSync(versionFile)) return fs.readFileSync(versionFile, 'utf8').trim()
     return null
   }
 
@@ -58,17 +56,15 @@ export class BinaryManager {
     const platform = process.platform
     const arch = process.arch
 
-    if (platform === 'win32' && arch === 'x64')
-      return `lemonade-embeddable-${version}-windows-x64.zip`
+    const prefix = `lemonade-embeddable-${version}`
+    if (platform === 'win32' && arch === 'x64') return `${prefix}-windows-x64.zip`
 
-    if (platform === 'linux' && arch === 'x64')
-      return `lemonade-embeddable-${version}-ubuntu-x64.tar.gz`
+    if (platform === 'linux' ) {
+      if (arch === 'x64') return `${prefix}-ubuntu-x64.tar.gz`
+      else return `${prefix}-ubuntu-arm64.tar.gz`
+    }
 
-    if (platform === 'linux' && arch === 'arm64')
-      return `lemonade-embeddable-${version}-ubuntu-arm64.tar.gz`
-
-    if (platform === 'darwin' && arch === 'arm64')
-      return `lemonade-embeddable-${version}-macos-arm64.tar.gz`
+    if (platform === 'darwin' && arch === 'arm64') return `${prefix}-macos-arm64.tar.gz`
 
     throw new Error(`Unsupported platform: ${platform}-${arch}`)
   }
@@ -294,9 +290,7 @@ export class BinaryManager {
     }
 
     const foundCli = this.findFile(this.binaryDir, lemonadeName)
-    if (foundCli)
-      Logger.info(`Found lemonade CLI at ${foundCli}`)
-
+    if (foundCli) Logger.info(`Found lemonade CLI at ${foundCli}`)
   }
 
   /** Recursively merge sourceDir into targetDir. */
@@ -306,8 +300,7 @@ export class BinaryManager {
     for (const entry of entries) {
       const srcPath = path.join(sourceDir, entry.name)
       const dstPath = path.join(targetDir, entry.name)
-      if (entry.isDirectory())
-        this.mergeDirectory(srcPath, dstPath)
+      if (entry.isDirectory()) this.mergeDirectory(srcPath, dstPath)
       else {
         // Do not overwrite an existing file unless it's the binary
         if (fs.existsSync(dstPath) && entry.name !== 'lemond.exe' && entry.name !== 'lemond')
@@ -324,12 +317,10 @@ export class BinaryManager {
       const entries = fs.readdirSync(dir, { withFileTypes: true })
       for (const entry of entries) {
         const fullPath = path.join(dir, entry.name)
-        if (entry.isFile() && entry.name === fileName)
-          return fullPath
+        if (entry.isFile() && entry.name === fileName) return fullPath
         if (entry.isDirectory()) {
           const found = this.findFile(fullPath, fileName)
-          if (found)
-            return found
+          if (found) return found
         }
       }
     } catch {
@@ -389,10 +380,8 @@ export class BinaryManager {
           'Update',
           'Later'
         )
-        if (action === 'Update')
-          await this.downloadBinary()
-      } else
-        Logger.info(`Lemonade Server is up to date (v${installedVersion})`)
+        if (action === 'Update') await this.downloadBinary()
+      } else Logger.info(`Lemonade Server is up to date (v${installedVersion})`)
     } catch (err) {
       Logger.error('Failed to check for updates', err)
     }

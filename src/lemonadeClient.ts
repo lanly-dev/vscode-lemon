@@ -41,8 +41,7 @@ export class LemonadeClient {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json'
       }
-      if (data)
-        headers['Content-Length'] = Buffer.byteLength(data).toString()
+      if (data) headers['Content-Length'] = Buffer.byteLength(data).toString()
 
       const req = http.request(
         `${this.baseUrl}${path}`,
@@ -56,8 +55,7 @@ export class LemonadeClient {
         }
       )
       req.on('error', reject)
-      if (data)
-        req.write(data)
+      if (data) req.write(data)
       req.end()
     })
   }
@@ -80,16 +78,14 @@ export class LemonadeClient {
   /** Get the health response with details. */
   async getHealth(): Promise<HealthResponse> {
     const { status, data } = await this.request('GET', '/v1/health')
-    if (status !== 200)
-      throw new Error(`Health check failed: ${status} ${data}`)
+    if (status !== 200) throw new Error(`Health check failed: ${status} ${data}`)
     return JSON.parse(data) as HealthResponse
   }
 
   /** List all available models. */
   async listModels(): Promise<LemonadeModel[]> {
     const { status, data } = await this.request('GET', '/v1/models')
-    if (status !== 200)
-      throw new Error(`Failed to list models: ${status} ${data}`)
+    if (status !== 200) throw new Error(`Failed to list models: ${status} ${data}`)
     const response = JSON.parse(data) as { data: LemonadeModel[] }
     return response.data ?? []
   }
@@ -100,8 +96,7 @@ export class LemonadeClient {
     const { status, data } = await this.request('POST', '/v1/load', {
       model_name: modelName
     })
-    if (status !== 200)
-      throw new Error(`Failed to load model: ${status} ${data}`)
+    if (status !== 200) throw new Error(`Failed to load model: ${status} ${data}`)
     Logger.info(`Model loaded: ${modelName}`)
   }
 
@@ -110,8 +105,7 @@ export class LemonadeClient {
     const body = modelName ? { model_name: modelName } : {}
     Logger.info(`Unloading model: ${modelName ?? 'all'}`)
     const { status, data } = await this.request('POST', '/v1/unload', body)
-    if (status !== 200)
-      throw new Error(`Failed to unload model: ${status} ${data}`)
+    if (status !== 200) throw new Error(`Failed to unload model: ${status} ${data}`)
     Logger.info(`Model unloaded: ${modelName ?? 'all'}`)
   }
 
@@ -133,8 +127,7 @@ export class LemonadeClient {
       stream: false
     })
 
-    if (status !== 200)
-      throw new Error(`Failed to pull model: ${status} ${data}`)
+    if (status !== 200) throw new Error(`Failed to pull model: ${status} ${data}`)
 
     if (onProgress)
       onProgress('Model pulled successfully')
@@ -147,8 +140,7 @@ export class LemonadeClient {
     const { status, data } = await this.request('POST', '/v1/delete', {
       model_name: modelName
     })
-    if (status !== 200)
-      throw new Error(`Failed to delete model: ${status} ${data}`)
+    if (status !== 200) throw new Error(`Failed to delete model: ${status} ${data}`)
     Logger.info(`Model deleted: ${modelName}`)
   }
 
@@ -163,8 +155,7 @@ export class LemonadeClient {
       '/v1/chat/completions',
       { ...request, stream: false }
     )
-    if (status !== 200)
-      throw new Error(`Chat completion failed: ${status} ${data}`)
+    if (status !== 200) throw new Error(`Chat completion failed: ${status} ${data}`)
     return JSON.parse(data) as ChatCompletionResponse
   }
 
@@ -207,8 +198,7 @@ export class LemonadeClient {
 
             for (const line of lines) {
               const trimmed = line.trim()
-              if (!trimmed || !trimmed.startsWith('data: '))
-                continue
+              if (!trimmed || !trimmed.startsWith('data: ')) continue
 
               const jsonStr = trimmed.slice(6) // Remove 'data: ' prefix
               if (jsonStr === '[DONE]') {
@@ -302,8 +292,7 @@ export class LemonadeClient {
       { role: 'system', content: LemonadeClient.buildSystemPrompt(command) }
     ]
 
-    for (const msg of history)
-      messages.push({ role: msg.role as 'user' | 'assistant', content: msg.content })
+    for (const msg of history) messages.push({ role: msg.role as 'user' | 'assistant', content: msg.content })
 
     messages.push({ role: 'user', content: prompt })
     return messages

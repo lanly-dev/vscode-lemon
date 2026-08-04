@@ -1,14 +1,14 @@
 import * as vscode from 'vscode'
-import { Logger } from './logger'
 import { BinaryManager } from './binaryManager'
-import { ServerManager } from './serverManager'
-import { LemonadeClient } from './lemonadeClient'
 import { ChatParticipant } from './chatParticipant'
+import { LemonadeClient } from './lemonadeClient'
+import { Logger } from './logger'
+import { ServerManager } from './serverManager'
 import { ServerViewProvider } from './serverView'
 
 let binaryManager: BinaryManager
-let serverManager: ServerManager
 let chatParticipant: ChatParticipant
+let serverManager: ServerManager
 let serverViewProvider: ServerViewProvider
 
 /**

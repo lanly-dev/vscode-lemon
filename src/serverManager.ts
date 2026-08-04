@@ -151,8 +151,7 @@ export class ServerManager {
       placeHolder: 'Choose which Lemonade Server to use'
     })
 
-    if (!selected)
-      return
+    if (!selected) return
 
     // Handle "Add Custom Server URL..."
     if (selected.label.includes('Add Custom Server URL')) {
@@ -162,8 +161,7 @@ export class ServerManager {
         placeHolder: 'http://localhost:13305',
         value: defaultUrl
       })
-      if (!url)
-        return
+      if (!url) return
 
       // Save to config and select
       await config.update('customServerUrl', url, vscode.ConfigurationTarget.Global)
@@ -212,8 +210,7 @@ export class ServerManager {
   private setStatus(status: ServerStatus): void {
     this._status = status
     this.updateStatusBar()
-    for (const callback of this.statusChangeCallbacks)
-      callback(status)
+    for (const callback of this.statusChangeCallbacks) callback(status)
   }
 
   /** Update the status bar item. */
@@ -327,14 +324,12 @@ export class ServerManager {
     // Handle process output
     this.process.stdout?.on('data', (data: Buffer) => {
       const text = data.toString().trim()
-      if (text)
-        Logger.info(`[lemond] ${text}`)
+      if (text) Logger.info(`[lemond] ${text}`)
     })
 
     this.process.stderr?.on('data', (data: Buffer) => {
       const text = data.toString().trim()
-      if (text)
-        Logger.warn(`[lemond] ${text}`)
+      if (text) Logger.warn(`[lemond] ${text}`)
     })
 
     this.process.on('error', (err) => {
@@ -346,8 +341,7 @@ export class ServerManager {
     this.process.on('exit', (code, signal) => {
       Logger.info(`Server process exited (code: ${code}, signal: ${signal})`)
       this.process = null
-      if (this._status !== 'stopped')
-        this.setStatus('stopped')
+      if (this._status !== 'stopped') this.setStatus('stopped')
     })
 
     // Wait for the server to be ready
@@ -479,8 +473,7 @@ export class ServerManager {
   /** Dispose of resources. */
   dispose(): void {
     // Only kill the process if we started it
-    if (!this._usingExistingServer && this.process && !this.process.killed)
-      this.process.kill('SIGKILL')
+    if (!this._usingExistingServer && this.process && !this.process.killed) this.process.kill('SIGKILL')
     this.process = null
     this._usingExistingServer = false
     this.statusBarItem.dispose()
