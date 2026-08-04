@@ -72,6 +72,10 @@
       {
         "command": "lemond.refreshServer",
         "title": "Lemonade: Refresh Server Status"
+      },
+      {
+        "command": "lemond.switchToStandalone",
+        "title": "Lemonade: Switch to Standalone Server"
       }
     ],
     "viewsContainers": {

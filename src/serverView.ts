@@ -58,25 +58,73 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
     await this.fetchServerData()
 
     const items: vscode.TreeItem[] = []
-    const serverName = this.serverManager.selectedServerName
-    const serverUrl = this.serverManager.selectedServerUrl
 
-    // Determine which server to show
-    const isStandalone = serverName === 'Standalone Lemonade'
-    const activeServer = isStandalone ? this.standaloneServer : this.lemondServer
+    // Auto-detect which server to show: prefer standalone if running
+    let displayServer: ServerInstance | null = null
+    let displayName = ''
+    let displayUrl = ''
+
+    // Check if we should show a switch prompt
+    const showSwitchPrompt = this.standaloneServer?.status === 'running'
+      && this.serverManager.isEmbeddedSelected
+      && this.lemondServer?.status === 'running'
+
+    if (this.standaloneServer?.status === 'running') {
+      // Show standalone server if it's running
+      displayServer = this.standaloneServer
+      displayName = 'Standalone Lemonade'
+      displayUrl = this.standaloneServer.url
+    } else if (this.lemondServer?.status === 'running') {
+      // Fall back to embedded server if running
+      displayServer = this.lemondServer
+      displayName = 'lemond (Embedded)'
+      displayUrl = this.lemondServer.url
+    } else if (this.standaloneServer?.status === 'starting') {
+      // Show standalone if it's starting
+      displayServer = this.standaloneServer
+      displayName = 'Standalone Lemonade'
+      displayUrl = this.standaloneServer.url
+    } else if (this.lemondServer?.status === 'starting') {
+      // Show embedded if it's starting
+      displayServer = this.lemondServer
+      displayName = 'lemond (Embedded)'
+      displayUrl = this.lemondServer.url
+    } else {
+      // No server running, show embedded (stopped) by default
+      displayServer = this.lemondServer
+      displayName = 'lemond (Embedded)'
+      displayUrl = this.lemondServer?.url || `http://localhost:8000`
+    }
+
+    // Add switch prompt as first item if standalone is running and embedded is selected
+    if (showSwitchPrompt && this.standaloneServer?.status === 'running') {
+      const switchItem = new vscode.TreeItem(
+        '$(arrow-right) Switch to Standalone Lemonade',
+        vscode.TreeItemCollapsibleState.None
+      )
+      switchItem.iconPath = new vscode.ThemeIcon('server')
+      switchItem.contextValue = 'LEMOND_SWITCH_TO_STANDALONE'
+      switchItem.tooltip = 'Click to switch from embedded to standalone Lemonade Server'
+      switchItem.command = {
+        command: 'lemond.switchToStandalone',
+        title: 'Switch to Standalone',
+        arguments: []
+      }
+      items.push(switchItem)
+    }
 
     // Show single active server
     const serverHeader = new vscode.TreeItem(
-      serverName,
+      displayName,
       vscode.TreeItemCollapsibleState.Expanded
     )
     serverHeader.iconPath = new vscode.ThemeIcon('server')
     serverHeader.contextValue = 'LEMOND_SERVER_HEADER'
-    serverHeader.tooltip = `Active server: ${serverName}\nURL: ${serverUrl}`
+    serverHeader.tooltip = `Active server: ${displayName}\nURL: ${displayUrl}`
     items.push(serverHeader)
 
     // Store the active server reference for child elements
-    this._activeServer = activeServer
+    this._activeServer = displayServer
 
     return items
   }

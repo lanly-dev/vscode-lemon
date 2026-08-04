@@ -293,6 +293,25 @@ function registerCommands(context: vscode.ExtensionContext): void {
       serverViewProvider.refresh()
     })
   )
+
+  // Switch to standalone server
+  context.subscriptions.push(
+    vscode.commands.registerCommand('lemond.switchToStandalone', async () => {
+      const standalonePort = serverManager.standalonePort
+      const standaloneUrl = `http://localhost:${standalonePort}`
+
+      // Stop the embedded server first
+      Logger.info('Stopping embedded server to switch to standalone...')
+      await serverManager.stop()
+
+      // Switch to standalone
+      serverManager.setSelectedServer(standaloneUrl, 'Standalone Lemonade')
+      vscode.window.showInformationMessage(`Switched to Standalone Lemonade at ${standaloneUrl}`)
+
+      // Refresh the tree view
+      serverViewProvider.refresh()
+    })
+  )
 }
 
 /**
