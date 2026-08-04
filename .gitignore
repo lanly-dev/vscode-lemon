@@ -4,3 +4,9 @@ node_modules
 .vscode-test/
 *.vsix
 package-lock.json
+# Downloaded binaries
+bin/
+# Temporary documentation downloads
+lemonade_docs.html
+lemonade_api.html
+lemonade_releases.json

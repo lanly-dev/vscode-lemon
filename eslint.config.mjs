@@ -2,7 +2,7 @@ import typescriptEslint from 'typescript-eslint'
 import stylistic from '@stylistic/eslint-plugin'
 
 export default [{
-  ignores: ['node_modules']
+  ignores: ['node_modules', 'dist', 'out']
 }, {
   files: ['**/*.ts', '**/*.mjs']
 }, {

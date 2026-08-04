@@ -1,7 +1,7 @@
 {
-  "name": "lemond 🍋",
+  "name": "lemond",
   "displayName": "lemond 🍋",
-  "description": "",
+  "description": "Run a local AI chat server powered by Lemonade Server directly in VS Code",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.125.0"
@@ -9,15 +9,154 @@
   "categories": [
     "AI"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
+    "chatParticipants": [
+      {
+        "id": "lemond.chat",
+        "name": "Lemonade",
+        "description": "Chat with a local AI model powered by Lemonade Server",
+        "isSticky": true,
+        "commands": [
+          {
+            "name": "fix",
+            "description": "Generate a fix for the selected code"
+          },
+          {
+            "name": "explain",
+            "description": "Explain the selected code"
+          }
+        ]
+      }
+    ],
     "commands": [
       {
-        "command": "lemond.helloWorld",
-        "title": "Hello World"
+        "command": "lemond.startServer",
+        "title": "Lemonade: Start Server"
+      },
+      {
+        "command": "lemond.stopServer",
+        "title": "Lemonade: Stop Server"
+      },
+      {
+        "command": "lemond.restartServer",
+        "title": "Lemonade: Restart Server"
+      },
+      {
+        "command": "lemond.downloadBinary",
+        "title": "Lemonade: Download/Update Binary"
+      },
+      {
+        "command": "lemond.openChat",
+        "title": "Lemonade: Open Chat"
+      },
+      {
+        "command": "lemond.pullModel",
+        "title": "Lemonade: Pull Model"
+      },
+      {
+        "command": "lemond.loadModel",
+        "title": "Lemonade: Load Model"
+      },
+      {
+        "command": "lemond.unloadModel",
+        "title": "Lemonade: Unload Model"
+      },
+      {
+        "command": "lemond.selectModel",
+        "title": "Lemonade: Select Active Model"
+      },
+      {
+        "command": "lemond.refreshServer",
+        "title": "Lemonade: Refresh Server Status"
       }
-    ]
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "lemond-sidebar",
+          "title": "Lemonade",
+          "icon": "media/lemon.svg"
+        }
+      ]
+    },
+    "views": {
+      "lemond-sidebar": [
+        {
+          "id": "lemond.serversView",
+          "name": "Servers"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "lemond.refreshServer",
+          "when": "view == lemond.serversView",
+          "group": "navigation"
+        },
+        {
+          "command": "lemond.pullModel",
+          "when": "view == lemond.serversView",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "lemond.loadModel",
+          "when": "view == lemond.serversView && viewItem == model-unloaded",
+          "group": "inline"
+        },
+        {
+          "command": "lemond.unloadModel",
+          "when": "view == lemond.serversView && viewItem == model-loaded",
+          "group": "inline"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Lemonade",
+      "properties": {
+        "lemond.serverPort": {
+          "type": "number",
+          "default": 13305,
+          "description": "Port for the standalone Lemonade Server"
+        },
+        "lemond.embeddedPort": {
+          "type": "number",
+          "default": 8000,
+          "description": "Port for the embedded lemond server"
+        },
+        "lemond.autoStart": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically start the server when the extension activates"
+        },
+        "lemond.useExistingServer": {
+          "type": "boolean",
+          "default": true,
+          "description": "Connect to an existing Lemonade Server if one is already running on the configured port"
+        },
+        "lemond.defaultModel": {
+          "type": "string",
+          "default": "",
+          "description": "Default model to use for chat (leave empty to be prompted)"
+        },
+        "lemond.binaryVersion": {
+          "type": "string",
+          "default": "latest",
+          "description": "Lemonade Server binary version to download (e.g., '11.5.1' or 'latest')"
+        },
+        "lemond.customServerUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Custom Lemonade Server URL to use for chat (e.g., http://localhost:13305)"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
@@ -30,6 +169,7 @@
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "check-types": "tsc --noEmit",
+    "lint": "eslint .",
     "efix": "eslint . --fix"
   },
   "devDependencies": {
