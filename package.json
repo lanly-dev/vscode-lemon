@@ -16,7 +16,7 @@
   "contributes": {
     "chatParticipants": [
       {
-        "id": "lemond.chat",
+        "id": "LEMOND_CHAT",
         "name": "Lemonade",
         "description": "Chat with a local AI model powered by Lemonade Server",
         "isSticky": true,
@@ -35,63 +35,64 @@
     "commands": [
       {
         "command": "lemond.startServer",
-        "title": "Lemonade: Start Server"
+        "title": "Lemond: Start Server"
       },
       {
         "command": "lemond.stopServer",
-        "title": "Lemonade: Stop Server"
+        "title": "Lemond: Stop Server"
       },
       {
         "command": "lemond.restartServer",
-        "title": "Lemonade: Restart Server"
+        "title": "Lemond: Restart Server"
       },
       {
         "command": "lemond.downloadBinary",
-        "title": "Lemonade: Download/Update Binary"
+        "title": "Lemond: Download/Update Binary"
       },
       {
         "command": "lemond.openChat",
-        "title": "Lemonade: Open Chat"
+        "title": "Lemond: Open Chat"
       },
       {
         "command": "lemond.pullModel",
-        "title": "Lemonade: Pull Model"
+        "title": "Lemond: Pull Model"
       },
       {
         "command": "lemond.loadModel",
-        "title": "Lemonade: Load Model"
+        "title": "Lemond: Load Model"
       },
       {
         "command": "lemond.unloadModel",
-        "title": "Lemonade: Unload Model"
+        "title": "Lemond: Unload Model"
       },
       {
         "command": "lemond.selectModel",
-        "title": "Lemonade: Select Active Model"
+        "title": "Lemond: Select Active Model"
       },
       {
         "command": "lemond.refreshServer",
-        "title": "Lemonade: Refresh Server Status"
+        "title": "Lemond: Refresh Server Status"
       },
       {
         "command": "lemond.switchToStandalone",
-        "title": "Lemonade: Switch to Standalone Server"
+        "title": "Lemond: Switch to Standalone Server"
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "lemond-sidebar",
-          "title": "Lemonade",
+          "id": "LEMOND_SIDEBAR",
+          "title": "Lemond",
           "icon": "media/lemon.svg"
         }
       ]
     },
     "views": {
-      "lemond-sidebar": [
+      "LEMOND_SIDEBAR": [
         {
           "id": "lemond.serversView",
-          "name": "Servers"
+          "name": "Servers",
+          "icon": "$(server)"
         }
       ]
     },

@@ -237,7 +237,7 @@ export class ChatParticipant {
   static async openChat(): Promise<void> {
     // Open the chat view with our participant
     await vscode.commands.executeCommand('workbench.action.chat.open', {
-      participant: 'lemond.chat'
+      participant: 'LEMOND_CHAT'
     })
   }
 }

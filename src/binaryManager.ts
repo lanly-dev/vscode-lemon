@@ -1,9 +1,10 @@
-import * as fs from 'fs'
-import * as path from 'path'
-import * as https from 'https'
 import { exec } from 'child_process'
 import { promisify } from 'util'
+import * as fs from 'fs'
+import * as https from 'https'
+import * as path from 'path'
 import * as vscode from 'vscode'
+
 import { Logger } from './logger'
 import type { GitHubRelease } from './interfaces'
 
@@ -12,11 +13,9 @@ const execAsync = promisify(exec)
 const GITHUB_API = 'https://api.github.com/repos/lemonade-sdk/lemonade/releases/latest'
 const GITHUB_RELEASES_API = 'https://api.github.com/repos/lemonade-sdk/lemonade/releases'
 
-/**
- * Manages downloading, extracting, and locating the Lemonade Server embeddable binary.
- */
+//  Manages downloading, extracting, and locating the Lemonade Server embeddable binary.
 export class BinaryManager {
-  constructor(private context: vscode.ExtensionContext) {}
+  constructor(private context: vscode.ExtensionContext) { }
 
   /** Directory where the binary is stored (in the extension's own directory). */
   get binaryDir(): string {
@@ -59,7 +58,7 @@ export class BinaryManager {
     const prefix = `lemonade-embeddable-${version}`
     if (platform === 'win32' && arch === 'x64') return `${prefix}-windows-x64.zip`
 
-    if (platform === 'linux' ) {
+    if (platform === 'linux') {
       if (arch === 'x64') return `${prefix}-ubuntu-x64.tar.gz`
       else return `${prefix}-ubuntu-arm64.tar.gz`
     }
