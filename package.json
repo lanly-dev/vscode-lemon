@@ -1,6 +1,6 @@
 {
-  "name": "lemond",
-  "displayName": "lemond 🍋",
+  "name": "lemon",
+  "displayName": "lemon 🍋",
   "description": "Run a local AI chat server powered by Lemonade Server directly in VS Code",
   "version": "0.0.1",
   "engines": {
@@ -16,7 +16,7 @@
   "contributes": {
     "chatParticipants": [
       {
-        "id": "LEMOND_CHAT",
+        "id": "LEMON_CHAT",
         "name": "Lemonade",
         "description": "Chat with a local AI model powered by Lemonade Server",
         "isSticky": true,
@@ -34,65 +34,65 @@
     ],
     "commands": [
       {
-        "command": "lemond.startServer",
-        "title": "Lemond: Start Server"
+        "command": "lemon.startServer",
+        "title": "Lemon: Start Server"
       },
       {
-        "command": "lemond.stopServer",
-        "title": "Lemond: Stop Server"
+        "command": "lemon.stopServer",
+        "title": "Lemon: Stop Server"
       },
       {
-        "command": "lemond.restartServer",
-        "title": "Lemond: Restart Server"
+        "command": "lemon.restartServer",
+        "title": "Lemon: Restart Server"
       },
       {
-        "command": "lemond.downloadBinary",
-        "title": "Lemond: Download/Update Binary"
+        "command": "lemon.downloadBinary",
+        "title": "Lemon: Download/Update Binary"
       },
       {
-        "command": "lemond.openChat",
-        "title": "Lemond: Open Chat"
+        "command": "lemon.openChat",
+        "title": "Lemon: Open Chat"
       },
       {
-        "command": "lemond.pullModel",
-        "title": "Lemond: Pull Model",
+        "command": "lemon.pullModel",
+        "title": "Lemon: Pull Model",
         "icon": "$(cloud-download)"
       },
       {
-        "command": "lemond.loadModel",
-        "title": "Lemond: Load Model"
+        "command": "lemon.loadModel",
+        "title": "Lemon: Load Model"
       },
       {
-        "command": "lemond.unloadModel",
-        "title": "Lemond: Unload Model"
+        "command": "lemon.unloadModel",
+        "title": "Lemon: Unload Model"
       },
       {
-        "command": "lemond.selectModel",
-        "title": "Lemond: Select Active Model"
+        "command": "lemon.selectModel",
+        "title": "Lemon: Select Active Model"
       },
       {
-        "command": "lemond.refreshServer",
-        "title": "Lemond: Refresh Server Status",
+        "command": "lemon.refreshServer",
+        "title": "Lemon: Refresh Server Status",
         "icon": "$(refresh)"
       },
       {
-        "command": "lemond.switchToStandalone",
-        "title": "Lemond: Switch to Standalone Server"
+        "command": "lemon.switchToStandalone",
+        "title": "Lemon: Switch to Standalone Server"
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "LEMOND_SIDEBAR",
-          "title": "Lemond",
+          "id": "LEMON_SIDEBAR",
+          "title": "Lemon",
           "icon": "media/lemon.svg"
         }
       ]
     },
     "views": {
-      "LEMOND_SIDEBAR": [
+      "LEMON_SIDEBAR": [
         {
-          "id": "lemond.serversView",
+          "id": "lemon.serversView",
           "name": "Servers",
           "icon": "$(server)"
         }
@@ -101,25 +101,25 @@
     "menus": {
       "view/title": [
         {
-          "command": "lemond.refreshServer",
-          "when": "view == lemond.serversView",
+          "command": "lemon.refreshServer",
+          "when": "view == lemon.serversView",
           "group": "navigation"
         },
         {
-          "command": "lemond.pullModel",
-          "when": "view == lemond.serversView",
+          "command": "lemon.pullModel",
+          "when": "view == lemon.serversView",
           "group": "navigation"
         }
       ],
       "view/item/context": [
         {
-          "command": "lemond.loadModel",
-          "when": "view == lemond.serversView && viewItem == model-unloaded",
+          "command": "lemon.loadModel",
+          "when": "view == lemon.serversView && viewItem == model-unloaded",
           "group": "inline"
         },
         {
-          "command": "lemond.unloadModel",
-          "when": "view == lemond.serversView && viewItem == model-loaded",
+          "command": "lemon.unloadModel",
+          "when": "view == lemon.serversView && viewItem == model-loaded",
           "group": "inline"
         }
       ]
@@ -127,42 +127,42 @@
     "configuration": {
       "title": "Lemonade",
       "properties": {
-        "lemond.serverPort": {
+        "lemon.serverPort": {
           "type": "number",
           "default": 13305,
           "description": "Port for the standalone Lemonade Server"
         },
-        "lemond.embeddedPort": {
+        "lemon.embeddedPort": {
           "type": "number",
           "default": 8000,
-          "description": "Port for the embedded lemond server"
+          "description": "Port for the embedded lemon server"
         },
-        "lemond.autoStart": {
+        "lemon.autoStart": {
           "type": "boolean",
           "default": false,
           "description": "Automatically start the server when the extension activates"
         },
-        "lemond.useExistingServer": {
+        "lemon.useExistingServer": {
           "type": "boolean",
           "default": true,
           "description": "Connect to an existing Lemonade Server if one is already running on the configured port"
         },
-        "lemond.defaultModel": {
+        "lemon.defaultModel": {
           "type": "string",
           "default": "",
           "description": "Default model to use for chat (leave empty to be prompted)"
         },
-        "lemond.binaryVersion": {
+        "lemon.binaryVersion": {
           "type": "string",
           "default": "latest",
           "description": "Lemonade Server binary version to download (e.g., '11.5.1' or 'latest')"
         },
-        "lemond.customServerUrl": {
+        "lemon.customServerUrl": {
           "type": "string",
           "default": "",
           "description": "Custom Lemonade Server URL to use for chat (e.g., http://localhost:13305)"
         },
-        "lemond.maxLoadedModels": {
+        "lemon.maxLoadedModels": {
           "type": "number",
           "default": 1,
           "description": "Maximum number of models that can be loaded simultaneously for the embedded server. Use -1 for unlimited."

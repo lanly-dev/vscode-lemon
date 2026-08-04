@@ -1,5 +1,5 @@
 /**
- * Shared types for the lemond extension.
+ * Shared types for the lemon extension.
  */
 
 /** Information about a Lemonade Server release asset. */

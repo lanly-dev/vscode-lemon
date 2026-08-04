@@ -87,7 +87,7 @@ export class BinaryManager {
     return new Promise((resolve, reject) => {
       const options = {
         headers: {
-          'User-Agent': 'vscode-lemond-extension',
+          'User-Agent': 'vscode-lemon-extension',
           Accept: 'application/vnd.github+json'
         }
       }
@@ -190,7 +190,7 @@ export class BinaryManager {
 
   /** Download and install the Lemonade Server binary. */
   async downloadBinary(): Promise<string> {
-    const config = vscode.workspace.getConfiguration('lemond')
+    const config = vscode.workspace.getConfiguration('lemon')
     const versionConfig = config.get<string>('binaryVersion', 'latest')
 
     Logger.info(`Fetching release info (version: ${versionConfig})...`)

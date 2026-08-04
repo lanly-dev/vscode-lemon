@@ -20,7 +20,7 @@ export class ChatParticipant {
 
     // Create the chat participant
     this.participant = vscode.chat.createChatParticipant(
-      'lemond.chat',
+      'lemon.chat',
       this.handleRequest.bind(this)
     )
     this.participant.iconPath = new vscode.ThemeIcon('sparkle')
@@ -48,7 +48,7 @@ export class ChatParticipant {
     if (this.selectedModel) return this.selectedModel
 
     // Check config for default model
-    const config = vscode.workspace.getConfiguration('lemond')
+    const config = vscode.workspace.getConfiguration('lemon')
     const defaultModel = config.get<string>('defaultModel', '')
 
     if (defaultModel) {
@@ -70,7 +70,7 @@ export class ChatParticipant {
       const models = await this.client.listModels()
       if (models.length === 0) {
         vscode.window.showWarningMessage(
-          'No models available. Please pull a model first using the "Lemonade: Pull Model" command.'
+          'No models available. Please pull a model first using the "Lemon: Pull Model" command.'
         )
         return undefined
       }
@@ -128,7 +128,7 @@ export class ChatParticipant {
       } else {
         response.markdown(
           'Lemonade Server is not running. '
-          + 'Please start it using the "Lemonade: Start Server" command.'
+          + 'Please start it using the "Lemon: Start Server" command.'
         )
         return { errorDetails: { message: 'Server not running' } }
       }
@@ -138,8 +138,8 @@ export class ChatParticipant {
     const model = await this.getModel()
     if (!model) {
       response.markdown(
-        'No model is loaded. Please load a model first using the "Lemonade: Load Model" command '
-        + 'or pull a model using the "Lemonade: Pull Model" command.'
+        'No model is loaded. Please load a model first using the "Lemon: Load Model" command '
+        + 'or pull a model using the "Lemon: Pull Model" command.'
       )
       return { errorDetails: { message: 'No model available' } }
     }
@@ -237,7 +237,7 @@ export class ChatParticipant {
   static async openChat(): Promise<void> {
     // Open the chat view with our participant
     await vscode.commands.executeCommand('workbench.action.chat.open', {
-      participant: 'LEMOND_CHAT'
+      participant: 'LEMON_CHAT'
     })
   }
 }

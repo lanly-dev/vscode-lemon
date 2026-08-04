@@ -15,22 +15,22 @@ export async function activate(context: vscode.ExtensionContext) {
   const chatParticipant = new ChatParticipant(context, serverManager)
   const provider = await createTreeView(serverManager, binaryManager)
 
-  const d1 = rc('lemond.startServer', async () => {
+  const d1 = rc('lemon.startServer', async () => {
     await serverManager.start()
     provider.refresh()
   })
 
-  const d2 = rc('lemond.stopServer', async () => {
+  const d2 = rc('lemon.stopServer', async () => {
     await serverManager.stop()
     provider.refresh()
   })
 
-  const d3 = rc('lemond.restartServer', async () => {
+  const d3 = rc('lemon.restartServer', async () => {
     await serverManager.restart()
     provider.refresh()
   })
 
-  const d4 = rc('lemond.downloadBinary', async () => {
+  const d4 = rc('lemon.downloadBinary', async () => {
     try {
       await binaryManager.downloadBinary()
       vscode.window.showInformationMessage('Lemonade Server binary downloaded successfully')
@@ -40,9 +40,9 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   })
 
-  const d5 = rc('lemond.openChat', () => ChatParticipant.openChat())
+  const d5 = rc('lemon.openChat', () => ChatParticipant.openChat())
 
-  const d6 = rc('lemond.pullModel', async () => {
+  const d6 = rc('lemon.pullModel', async () => {
     if (serverManager.status !== 'running') {
       const start = await vscode.window.showInformationMessage(
         'Lemonade Server is not running. Start it now?',
@@ -89,7 +89,7 @@ export async function activate(context: vscode.ExtensionContext) {
     )
   })
 
-  const d7 = rc('lemond.loadModel', async (item?: { modelId?: string }) => {
+  const d7 = rc('lemon.loadModel', async (item?: { modelId?: string }) => {
     if (serverManager.status !== 'running') {
       vscode.window.showErrorMessage('Lemonade Server is not running')
       return
@@ -144,7 +144,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   })
 
-  const d8 = rc('lemond.unloadModel', async (item?: { modelId?: string }) => {
+  const d8 = rc('lemon.unloadModel', async (item?: { modelId?: string }) => {
     if (serverManager.status !== 'running') {
       vscode.window.showErrorMessage('Lemonade Server is not running')
       return
@@ -187,7 +187,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   })
 
-  const d9 = rc('lemond.selectModel', async () => {
+  const d9 = rc('lemon.selectModel', async () => {
     if (serverManager.status !== 'running') {
       vscode.window.showErrorMessage('Lemonade Server is not running')
       return
@@ -219,9 +219,9 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   })
 
-  const d10 = rc('lemond.refreshServer', () => provider.refresh())
+  const d10 = rc('lemon.refreshServer', () => provider.refresh())
 
-  const d11 = rc('lemond.switchToStandalone', async () => {
+  const d11 = rc('lemon.switchToStandalone', async () => {
     const standalonePort = serverManager.standalonePort
     const standaloneUrl = `http://localhost:${standalonePort}`
 
@@ -237,7 +237,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11)
 
   // Check for auto-start
-  const config = vscode.workspace.getConfiguration('lemond')
+  const config = vscode.workspace.getConfiguration('lemon')
   const autoStart = config.get<boolean>('autoStart', false)
   if (autoStart) {
     Logger.info('Auto-start is enabled, starting server...')
@@ -255,7 +255,7 @@ export async function activate(context: vscode.ExtensionContext) {
 // Register tree view for Lemonade status
 async function createTreeView(serverManager: ServerManager, binaryManager: BinaryManager) {
   const provider = new ServerViewProvider(serverManager, binaryManager)
-  vscode.window.createTreeView('lemond.serversView', {
+  vscode.window.createTreeView('lemon.serversView', {
     treeDataProvider: provider,
     showCollapseAll: true
   })

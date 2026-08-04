@@ -21,7 +21,7 @@ interface ServerInstance {
 
 /**
  * Tree data provider for the Servers view.
- * Shows both the standalone Lemonade app and the lemond app in a single tree.
+ * Shows both the standalone Lemonade app and the lemon app in a single tree.
  */
 export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
   private _onDidChangeTreeData = new vscode.EventEmitter<void>()
@@ -29,7 +29,7 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
 
   private client: LemonadeClient
   private standaloneServer: ServerInstance | null = null
-  private lemondServer: ServerInstance | null = null
+  private lemonServer: ServerInstance | null = null
 
   constructor(
     private serverManager: ServerManager,
@@ -68,33 +68,33 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
     // Check if we should show a switch prompt
     const showSwitchPrompt = this.standaloneServer?.status === 'running'
       && this.serverManager.isEmbeddedSelected
-      && this.lemondServer?.status === 'running'
+      && this.lemonServer?.status === 'running'
 
     if (this.standaloneServer?.status === 'running') {
       // Show standalone server if it's running
       displayServer = this.standaloneServer
       displayName = 'Standalone Lemonade'
       displayUrl = this.standaloneServer.url
-    } else if (this.lemondServer?.status === 'running') {
+    } else if (this.lemonServer?.status === 'running') {
       // Fall back to embedded server if running
-      displayServer = this.lemondServer
-      displayName = 'lemond (Embedded)'
-      displayUrl = this.lemondServer.url
+      displayServer = this.lemonServer
+      displayName = 'lemon (Embedded)'
+      displayUrl = this.lemonServer.url
     } else if (this.standaloneServer?.status === 'starting') {
       // Show standalone if it's starting
       displayServer = this.standaloneServer
       displayName = 'Standalone Lemonade'
       displayUrl = this.standaloneServer.url
-    } else if (this.lemondServer?.status === 'starting') {
+    } else if (this.lemonServer?.status === 'starting') {
       // Show embedded if it's starting
-      displayServer = this.lemondServer
-      displayName = 'lemond (Embedded)'
-      displayUrl = this.lemondServer.url
+      displayServer = this.lemonServer
+      displayName = 'lemon (Embedded)'
+      displayUrl = this.lemonServer.url
     } else {
       // No server running, show embedded (stopped) by default
-      displayServer = this.lemondServer
-      displayName = 'lemond (Embedded)'
-      displayUrl = this.lemondServer?.url || `http://localhost:8000`
+      displayServer = this.lemonServer
+      displayName = 'lemon (Embedded)'
+      displayUrl = this.lemonServer?.url || `http://localhost:8000`
     }
 
     // Add switch prompt as first item if standalone is running and embedded is selected
@@ -107,7 +107,7 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
       switchItem.contextValue = 'LEMOND_SWITCH_TO_STANDALONE'
       switchItem.tooltip = 'Click to switch from embedded to standalone Lemonade Server'
       switchItem.command = {
-        command: 'lemond.switchToStandalone',
+        command: 'lemon.switchToStandalone',
         title: 'Switch to Standalone',
         arguments: []
       }
@@ -288,14 +288,14 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
   private findServerByTooltip(tooltip: vscode.TreeItem['tooltip']): ServerInstance | null {
     const id = typeof tooltip === 'string' ? tooltip : ''
     if (this.standaloneServer?.id === id) return this.standaloneServer
-    if (this.lemondServer?.id === id) return this.lemondServer
+    if (this.lemonServer?.id === id) return this.lemonServer
     return null
   }
 
   /** Fetch server data for both instances. */
   private async fetchServerData(): Promise<void> {
     // Check for standalone Lemonade server on the standalone port
-    const config = vscode.workspace.getConfiguration('lemond')
+    const config = vscode.workspace.getConfiguration('lemon')
     const standalonePort = config.get<number>('serverPort', 13305)
     const embeddedPort = config.get<number>('embeddedPort', 8000)
     const standaloneClient = new LemonadeClient(standalonePort)
@@ -324,16 +324,16 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
       }
     }
 
-    // Check lemond server
+    // Check lemon server
     if (this.serverManager.status === 'running') {
       try {
         const health = await this.client.getHealth()
         const models = await this.client.listModels()
-        const config = vscode.workspace.getConfiguration('lemond')
+        const config = vscode.workspace.getConfiguration('lemon')
         const maxLoadedModels = config.get<number>('maxLoadedModels', 1)
-        this.lemondServer = {
-          id: 'lemond',
-          name: 'lemond (Embedded)',
+        this.lemonServer = {
+          id: 'lemon',
+          name: 'lemon (Embedded)',
           url: this.serverManager.url,
           isOwn: true,
           status: 'running',
@@ -343,9 +343,9 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
           maxLoadedModels
         }
       } catch (err) {
-        this.lemondServer = {
-          id: 'lemond',
-          name: 'lemond (Embedded)',
+        this.lemonServer = {
+          id: 'lemon',
+          name: 'lemon (Embedded)',
           url: this.serverManager.url,
           isOwn: true,
           status: 'error',
@@ -354,11 +354,11 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
         }
       }
     } else {
-      const config = vscode.workspace.getConfiguration('lemond')
+      const config = vscode.workspace.getConfiguration('lemon')
       const maxLoadedModels = config.get<number>('maxLoadedModels', 1)
-      this.lemondServer = {
-        id: 'lemond',
-        name: 'lemond (Embedded)',
+      this.lemonServer = {
+        id: 'lemon',
+        name: 'lemon (Embedded)',
         url: this.serverManager.url,
         isOwn: true,
         status: this.serverManager.status,

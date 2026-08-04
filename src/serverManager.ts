@@ -30,7 +30,7 @@ export class ServerManager {
       vscode.StatusBarAlignment.Right,
       100
     )
-    this.statusBarItem.command = 'lemond.startServer'
+    this.statusBarItem.command = 'lemon.startServer'
     this.context.subscriptions.push(this.statusBarItem)
     this.client = new LemonadeClient(this.port)
     this.updateStatusBar()
@@ -72,7 +72,7 @@ export class ServerManager {
   get selectedServerName(): string {
     if (this._serverName)
       return this._serverName
-    return 'lemond (Embedded)'
+    return 'lemon (Embedded)'
   }
 
   /** Get whether the embedded server is selected. */
@@ -90,7 +90,7 @@ export class ServerManager {
 
   /** Show a quick pick to choose which server to use for chat. */
   async selectServer(): Promise<void> {
-    const config = vscode.workspace.getConfiguration('lemond')
+    const config = vscode.workspace.getConfiguration('lemon')
     const standalonePort = config.get<number>('serverPort', 13305)
     const embeddedPort = config.get<number>('embeddedPort', 8000)
     const standaloneUrl = `http://localhost:${standalonePort}`
@@ -123,9 +123,9 @@ export class ServerManager {
       ? 'Running'
       : this._status === 'starting' ? 'Starting...' : 'Stopped'
     items.push({
-      label: `$(server-process) lemond (Embedded)`,
+      label: `$(server-process) lemon (Embedded)`,
       description: embeddedUrl,
-      detail: `The lemond binary managed by this extension (${embeddedStatus})`,
+      detail: `The lemon binary managed by this extension (${embeddedStatus})`,
       picked: this.isEmbeddedSelected
     })
 
@@ -174,27 +174,27 @@ export class ServerManager {
     if (selected.label.includes('Standalone')) {
       this.setSelectedServer(standaloneUrl, 'Standalone Lemonade')
       vscode.window.showInformationMessage(`Using Standalone Lemonade at ${standaloneUrl}`)
-    } else if (selected.label.includes('lemond')) {
+    } else if (selected.label.includes('lemon')) {
       // If embedded server is not running, offer to start it
       if (this._status !== 'running') {
         const start = await vscode.window.showInformationMessage(
-          'The embedded lemond server is not running. Start it now?',
+          'The embedded lemon server is not running. Start it now?',
           'Start Server',
           'Cancel'
         )
         if (start === 'Start Server') {
           const started = await this.start()
           if (!started) {
-            vscode.window.showErrorMessage('Failed to start the embedded lemond server')
+            vscode.window.showErrorMessage('Failed to start the embedded lemon server')
             return
           }
         } else {
-          this.setSelectedServer(embeddedUrl, 'lemond (Embedded)')
+          this.setSelectedServer(embeddedUrl, 'lemon (Embedded)')
           return
         }
       }
-      this.setSelectedServer(embeddedUrl, 'lemond (Embedded)')
-      vscode.window.showInformationMessage(`Using lemond (Embedded) at ${embeddedUrl}`)
+      this.setSelectedServer(embeddedUrl, 'lemon (Embedded)')
+      vscode.window.showInformationMessage(`Using lemon (Embedded) at ${embeddedUrl}`)
     } else if (selected.label.includes('Custom Server')) {
       this.setSelectedServer(defaultUrl, 'Custom Server')
       vscode.window.showInformationMessage(`Using custom server: ${defaultUrl}`)
@@ -245,7 +245,7 @@ export class ServerManager {
     }
 
     // Read ports from config
-    const config = vscode.workspace.getConfiguration('lemond')
+    const config = vscode.workspace.getConfiguration('lemon')
     this._standalonePort = config.get<number>('serverPort', 13305)
     this._port = config.get<number>('embeddedPort', 8000)
 
@@ -266,7 +266,7 @@ export class ServerManager {
       return true
     }
 
-    // No standalone server found, start embedded lemond
+    // No standalone server found, start embedded lemon
     this.client = new LemonadeClient(this._port)
 
     // Check if the embedded port is in use by something else
@@ -274,7 +274,7 @@ export class ServerManager {
     if (portInUse) {
       vscode.window.showErrorMessage(
         `Port ${this._port} is already in use by another application. `
-        + 'Please change the port in settings (lemond.embeddedPort).'
+        + 'Please change the port in settings (lemon.embeddedPort).'
       )
       this.setStatus('error')
       return false
@@ -294,11 +294,11 @@ export class ServerManager {
     const binaryPath = this.binaryManager.binaryPath
     const workingDir = this.binaryManager.binaryDir
 
-    // Write config.json with the embedded port so lemond uses it.
+    // Write config.json with the embedded port so lemon uses it.
     // Use default cache directory to avoid Windows permission issues.
     try {
       const configPath = path.join(workingDir, 'config.json')
-      const config = vscode.workspace.getConfiguration('lemond')
+      const config = vscode.workspace.getConfiguration('lemon')
       const maxLoadedModels = config.get<number>('maxLoadedModels', 1)
       const configData = {
         port: this._port,
@@ -311,7 +311,7 @@ export class ServerManager {
     }
 
     try {
-      // lemond [cache_dir] [--port PORT] [--host HOST]
+      // lemon [cache_dir] [--port PORT] [--host HOST]
       this.process = spawn(binaryPath, [workingDir, '--port', String(this._port)], {
         cwd: workingDir,
         env: { ...process.env },
@@ -327,12 +327,12 @@ export class ServerManager {
     // Handle process output
     this.process.stdout?.on('data', (data: Buffer) => {
       const text = data.toString().trim()
-      if (text) Logger.info(`[lemond] ${text}`)
+      if (text) Logger.info(`[lemon] ${text}`)
     })
 
     this.process.stderr?.on('data', (data: Buffer) => {
       const text = data.toString().trim()
-      if (text) Logger.warn(`[lemond] ${text}`)
+      if (text) Logger.warn(`[lemon] ${text}`)
     })
 
     this.process.on('error', (err) => {
