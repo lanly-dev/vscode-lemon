@@ -55,7 +55,8 @@
       },
       {
         "command": "lemond.pullModel",
-        "title": "Lemond: Pull Model"
+        "title": "Lemond: Pull Model",
+        "icon": "$(cloud-download)"
       },
       {
         "command": "lemond.loadModel",
@@ -71,7 +72,8 @@
       },
       {
         "command": "lemond.refreshServer",
-        "title": "Lemond: Refresh Server Status"
+        "title": "Lemond: Refresh Server Status",
+        "icon": "$(refresh)"
       },
       {
         "command": "lemond.switchToStandalone",
