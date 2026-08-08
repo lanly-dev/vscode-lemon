@@ -190,7 +190,7 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
         `Max Loaded Models: ${maxModelsText}`,
         vscode.TreeItemCollapsibleState.None
       )
-      maxModelsItem.iconPath = new vscode.ThemeIcon('stack')
+      maxModelsItem.iconPath = new vscode.ThemeIcon('symbol-number')
       const configLabel = server.isOwn ? ' (configured in settings)' : ''
       maxModelsItem.tooltip = `Maximum models that can be loaded simultaneously${configLabel}`
       items.push(maxModelsItem)
@@ -274,13 +274,14 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
         model.id,
         vscode.TreeItemCollapsibleState.None
       )
-      item.iconPath = new vscode.ThemeIcon(
-        isLoaded ? 'pass-filled' : 'circle',
-        isLoaded ? new vscode.ThemeColor('charts.green') : undefined
-      )
-      item.tooltip = `Model: ${model.id}\nStatus: ${isLoaded ? 'Loaded' : 'Available'}`
-      item.contextValue = isLoaded ? 'LEMOND_MODEL_LOADED' : 'LEMOND_MODEL_AVAILABLE'
-      item.description = isLoaded ? 'Loaded' : 'Available'
+      if (isLoaded) {
+        item.iconPath = new vscode.ThemeIcon('pass-filled', new vscode.ThemeColor('charts.green'))
+        item.contextValue = 'LEMOND_MODEL_LOADED'
+      } else {
+        item.iconPath = new vscode.ThemeIcon('circle')
+        item.tooltip = `Model: ${model.id}`
+        item.contextValue = 'LEMOND_MODEL_AVAILABLE'
+      }
       return item
     })
   }

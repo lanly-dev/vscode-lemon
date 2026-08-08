@@ -73,18 +73,16 @@ export interface ChatCompletionResponse {
   }
 }
 
-/** Server status. */
-export enum ServerStatus {
-  STOPPED = 'STOPPED',
-  STARTING = 'STARTING',
-  RUNNING = 'RUNNING',
-  ERROR = 'ERROR'
-}
-
-/** Tree item for the models view. */
 export interface ModelTreeItem {
   id: string
   label: string
   loaded: boolean
   description?: string
+}
+
+export enum ServerStatus {
+  RUNNING = 'RUNNING',
+  STARTING = 'STARTING',
+  STOPPED = 'STOPPED',
+  ERROR = 'ERROR',
 }

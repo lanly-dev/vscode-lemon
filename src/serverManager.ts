@@ -402,8 +402,7 @@ export class ServerManager {
     while (Date.now() - startTime < timeoutMs) {
       try {
         const healthy = await this.client.checkHealth()
-        if (healthy)
-          return true
+        if (healthy) return true
       } catch {
         // Server not ready yet, continue waiting
       }

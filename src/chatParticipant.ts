@@ -21,7 +21,7 @@ export class ChatParticipant {
 
     // Create the chat participant
     this.participant = vscode.chat.createChatParticipant(
-      'lemon.chat',
+      'LEMON_CHAT',
       this.handleRequest.bind(this)
     )
     this.participant.iconPath = new vscode.ThemeIcon('sparkle')
@@ -95,7 +95,7 @@ export class ChatParticipant {
       Logger.error('Failed to get model for chat', err)
     }
 
-    return undefined
+    return
   }
 
   /** Set the selected model. */

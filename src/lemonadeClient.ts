@@ -129,8 +129,7 @@ export class LemonadeClient {
 
     if (status !== 200) throw new Error(`Failed to pull model: ${status} ${data}`)
 
-    if (onProgress)
-      onProgress('Model pulled successfully')
+    if (onProgress) onProgress('Model pulled successfully')
     Logger.info(`Model pulled: ${modelName}`)
   }
 

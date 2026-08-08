@@ -4,8 +4,8 @@ import { ChatParticipant } from './chatParticipant'
 import { LemonadeClient } from './lemonadeClient'
 import { Logger } from './logger'
 import { ServerManager } from './serverManager'
-import { ServerViewProvider } from './serverView'
 import { ServerStatus } from './interfaces'
+import { ServerViewProvider } from './serverView'
 
 export async function activate(context: vscode.ExtensionContext) {
   const rc = vscode.commands.registerCommand
@@ -50,11 +50,9 @@ export async function activate(context: vscode.ExtensionContext) {
         'Start Server',
         'Cancel'
       )
-      if (start !== 'Start Server')
-        return
+      if (start !== 'Start Server') return
       const started = await serverManager.start()
-      if (!started)
-        return
+      if (!started) return
     }
 
     const modelName = await vscode.window.showInputBox({
@@ -63,8 +61,7 @@ export async function activate(context: vscode.ExtensionContext) {
       placeHolder: 'Model name'
     })
 
-    if (!modelName)
-      return
+    if (!modelName) return
 
     const client = new LemonadeClient(0)
     client.setBaseUrl(serverManager.selectedServerUrl)
@@ -115,8 +112,7 @@ export async function activate(context: vscode.ExtensionContext) {
           title: 'Select a model to load',
           placeHolder: 'Choose a model'
         })
-        if (!selected)
-          return
+        if (!selected) return
         modelName = selected.label
       } catch (err: unknown) {
         Logger.error('Failed to list models', err)
@@ -168,8 +164,7 @@ export async function activate(context: vscode.ExtensionContext) {
           title: 'Select a model to unload',
           placeHolder: 'Choose a model'
         })
-        if (!selected)
-          return
+        if (!selected) return
         modelName = selected.label
       } catch (err: unknown) {
         Logger.error('Failed to get loaded models', err)

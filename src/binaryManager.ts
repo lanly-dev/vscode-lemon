@@ -161,8 +161,7 @@ export class BinaryManager {
         })
       }).on('error', (err) => {
         file.close()
-        if (fs.existsSync(dest))
-          fs.unlinkSync(dest)
+        if (fs.existsSync(dest)) fs.unlinkSync(dest)
         reject(err)
       })
     })

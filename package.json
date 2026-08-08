@@ -17,7 +17,7 @@
     "chatParticipants": [
       {
         "id": "LEMON_CHAT",
-        "name": "Lemonade",
+        "name": "Lemon",
         "description": "Chat with a local AI model powered by Lemonade Server",
         "isSticky": true,
         "commands": [
@@ -125,7 +125,7 @@
       ]
     },
     "configuration": {
-      "title": "Lemonade",
+      "title": "lemon",
       "properties": {
         "lemon.serverPort": {
           "type": "number",
