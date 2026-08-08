@@ -5,6 +5,7 @@ import { LemonadeClient } from './lemonadeClient'
 import { Logger } from './logger'
 import { ServerManager } from './serverManager'
 import { ServerViewProvider } from './serverView'
+import { ServerStatus } from './interfaces'
 
 export async function activate(context: vscode.ExtensionContext) {
   const rc = vscode.commands.registerCommand
@@ -43,7 +44,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const d5 = rc('lemon.openChat', () => ChatParticipant.openChat())
 
   const d6 = rc('lemon.pullModel', async () => {
-    if (serverManager.status !== 'running') {
+    if (serverManager.status !== ServerStatus.RUNNING) {
       const start = await vscode.window.showInformationMessage(
         'Lemonade Server is not running. Start it now?',
         'Start Server',
@@ -90,7 +91,7 @@ export async function activate(context: vscode.ExtensionContext) {
   })
 
   const d7 = rc('lemon.loadModel', async (item?: { modelId?: string }) => {
-    if (serverManager.status !== 'running') {
+    if (serverManager.status !== ServerStatus.RUNNING) {
       vscode.window.showErrorMessage('Lemonade Server is not running')
       return
     }
@@ -145,7 +146,7 @@ export async function activate(context: vscode.ExtensionContext) {
   })
 
   const d8 = rc('lemon.unloadModel', async (item?: { modelId?: string }) => {
-    if (serverManager.status !== 'running') {
+    if (serverManager.status !== ServerStatus.RUNNING) {
       vscode.window.showErrorMessage('Lemonade Server is not running')
       return
     }
@@ -188,7 +189,7 @@ export async function activate(context: vscode.ExtensionContext) {
   })
 
   const d9 = rc('lemon.selectModel', async () => {
-    if (serverManager.status !== 'running') {
+    if (serverManager.status !== ServerStatus.RUNNING) {
       vscode.window.showErrorMessage('Lemonade Server is not running')
       return
     }

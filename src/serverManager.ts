@@ -2,25 +2,26 @@ import { ChildProcess, spawn } from 'child_process'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as vscode from 'vscode'
+
 import { Logger } from './logger'
 import { BinaryManager } from './binaryManager'
 import { LemonadeClient } from './lemonadeClient'
-import type { ServerStatus } from './interfaces'
+import { ServerStatus } from './interfaces'
 
 /**
  * Manages the Lemonade Server process lifecycle.
  */
 export class ServerManager {
-  private process: ChildProcess | null = null
-  private _status: ServerStatus = 'stopped'
   private _port: number = 8000
   private _standalonePort: number = 13305
-  private _usingExistingServer = false
-  private _serverUrl: string = ''
   private _serverName: string = ''
+  private _serverUrl: string = ''
+  private _status: ServerStatus = ServerStatus.STOPPED
+  private _usingExistingServer = false
+  private client: LemonadeClient
+  private process: ChildProcess | null = null
   private statusBarItem: vscode.StatusBarItem
   private statusChangeCallbacks: Array<(status: ServerStatus) => void> = []
-  private client: LemonadeClient
 
   constructor(
     private context: vscode.ExtensionContext,
@@ -70,8 +71,7 @@ export class ServerManager {
 
   /** Get the name of the currently selected server. */
   get selectedServerName(): string {
-    if (this._serverName)
-      return this._serverName
+    if (this._serverName) return this._serverName
     return 'lemon (Embedded)'
   }
 
@@ -119,9 +119,9 @@ export class ServerManager {
     }
 
     // Embedded option
-    const embeddedStatus = this._status === 'running'
+    const embeddedStatus = this._status === ServerStatus.RUNNING
       ? 'Running'
-      : this._status === 'starting' ? 'Starting...' : 'Stopped'
+      : this._status === ServerStatus.STARTING ? 'Starting...' : 'Stopped'
     items.push({
       label: `$(server-process) lemon (Embedded)`,
       description: embeddedUrl,
@@ -176,7 +176,7 @@ export class ServerManager {
       vscode.window.showInformationMessage(`Using Standalone Lemonade at ${standaloneUrl}`)
     } else if (selected.label.includes('lemon')) {
       // If embedded server is not running, offer to start it
-      if (this._status !== 'running') {
+      if (this._status !== ServerStatus.RUNNING) {
         const start = await vscode.window.showInformationMessage(
           'The embedded lemon server is not running. Start it now?',
           'Start Server',
@@ -216,16 +216,16 @@ export class ServerManager {
   /** Update the status bar item. */
   private updateStatusBar(): void {
     const icons: Record<ServerStatus, string> = {
-      stopped: '$(debug-stop)',
-      starting: '$(loading~spin)',
-      running: '$(pass-filled)',
-      error: '$(error)'
+      [ServerStatus.STOPPED]: '$(debug-stop)',
+      [ServerStatus.STARTING]: '$(loading~spin)',
+      [ServerStatus.RUNNING]: '$(pass-filled)',
+      [ServerStatus.ERROR]: '$(error)'
     }
     const labels: Record<ServerStatus, string> = {
-      stopped: 'Lemonade: Stopped',
-      starting: 'Lemonade: Starting...',
-      running: this._usingExistingServer ? 'Lemonade: Connected' : 'Lemonade: Running',
-      error: 'Lemonade: Error'
+      [ServerStatus.STOPPED]: 'Lemonade: Stopped',
+      [ServerStatus.STARTING]: 'Lemonade: Starting...',
+      [ServerStatus.RUNNING]: this._usingExistingServer ? 'Lemonade: Connected' : 'Lemonade: Running',
+      [ServerStatus.ERROR]: 'Lemonade: Error'
     }
     this.statusBarItem.text = `${icons[this._status]} ${labels[this._status]}`
     const mode = this._usingExistingServer ? 'Connected to' : 'Running at'
@@ -238,7 +238,7 @@ export class ServerManager {
 
   /** Start the Lemonade Server. */
   async start(): Promise<boolean> {
-    if (this._status === 'running' || this._status === 'starting') {
+    if (this._status === ServerStatus.RUNNING || this._status === ServerStatus.STARTING) {
       Logger.warn('Server is already running or starting')
       vscode.window.showInformationMessage('Lemonade Server is already running')
       return true
@@ -261,7 +261,7 @@ export class ServerManager {
       this._serverUrl = `http://localhost:${this._standalonePort}`
       this._serverName = 'Standalone Lemonade'
       this.client = standaloneClient
-      this.setStatus('running')
+      this.setStatus(ServerStatus.RUNNING)
       vscode.window.showInformationMessage(`Connected to Lemonade Server at http://localhost:${this._standalonePort}`)
       return true
     }
@@ -276,19 +276,19 @@ export class ServerManager {
         `Port ${this._port} is already in use by another application. `
         + 'Please change the port in settings (lemon.embeddedPort).'
       )
-      this.setStatus('error')
+      this.setStatus(ServerStatus.ERROR)
       return false
     }
 
     // Ensure binary is installed
     const installed = await this.binaryManager.ensureBinary()
     if (!installed) {
-      this.setStatus('error')
+      this.setStatus(ServerStatus.ERROR)
       return false
     }
 
     this._usingExistingServer = false
-    this.setStatus('starting')
+    this.setStatus(ServerStatus.STARTING)
     Logger.info(`Starting embedded Lemonade Server on port ${this._port}...`)
 
     const binaryPath = this.binaryManager.binaryPath
@@ -319,7 +319,7 @@ export class ServerManager {
       })
     } catch (err) {
       Logger.error('Failed to start server process', err)
-      this.setStatus('error')
+      this.setStatus(ServerStatus.ERROR)
       vscode.window.showErrorMessage(`Failed to start Lemonade Server: ${err}`)
       return false
     }
@@ -337,26 +337,26 @@ export class ServerManager {
 
     this.process.on('error', (err) => {
       Logger.error('Server process error', err)
-      this.setStatus('error')
+      this.setStatus(ServerStatus.ERROR)
       vscode.window.showErrorMessage(`Lemonade Server error: ${err.message}`)
     })
 
     this.process.on('exit', (code, signal) => {
       Logger.info(`Server process exited (code: ${code}, signal: ${signal})`)
       this.process = null
-      if (this._status !== 'stopped') this.setStatus('stopped')
+      if (this._status !== ServerStatus.STOPPED) this.setStatus(ServerStatus.STOPPED)
     })
 
     // Wait for the server to be ready
     const ready = await this.waitForReady()
     if (ready) {
-      this.setStatus('running')
+      this.setStatus(ServerStatus.RUNNING)
       Logger.info('Lemonade Server is ready')
       vscode.window.showInformationMessage('Lemonade Server started successfully')
       return true
     }
     Logger.error('Server failed to become ready within timeout')
-    this.setStatus('error')
+    this.setStatus(ServerStatus.ERROR)
     vscode.window.showErrorMessage('Lemonade Server failed to start within 60 seconds. Check the output for details.')
     return false
   }
@@ -418,14 +418,14 @@ export class ServerManager {
     if (this._usingExistingServer) {
       Logger.info('Disconnecting from existing Lemonade Server')
       this._usingExistingServer = false
-      this.setStatus('stopped')
+      this.setStatus(ServerStatus.STOPPED)
       vscode.window.showInformationMessage('Disconnected from Lemonade Server')
       return
     }
 
     if (!this.process) {
       Logger.info('Server is not running')
-      this.setStatus('stopped')
+      this.setStatus(ServerStatus.STOPPED)
       return
     }
 
@@ -450,7 +450,7 @@ export class ServerManager {
     }
 
     this.process = null
-    this.setStatus('stopped')
+    this.setStatus(ServerStatus.STOPPED)
     Logger.info('Lemonade Server stopped')
     vscode.window.showInformationMessage('Lemonade Server stopped')
   }
@@ -464,8 +464,7 @@ export class ServerManager {
 
   /** Check if the server is running and healthy. */
   async isHealthy(): Promise<boolean> {
-    if (this._status !== 'running')
-      return false
+    if (this._status !== ServerStatus.RUNNING)  return false
     try {
       return await this.client.checkHealth()
     } catch {

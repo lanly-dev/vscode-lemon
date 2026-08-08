@@ -40,7 +40,7 @@ export class BinaryManager {
     // Check if the binary exists in a subdirectory (from a previous extraction)
     const isWindows = process.platform === 'win32'
     const lemondName = isWindows ? 'lemond.exe' : 'lemond'
-    return this.findFile(this.binaryDir, lemondName) !== null
+    return !this.findFile(this.binaryDir, lemondName)
   }
 
   /** Get the installed version, or null if not installed. */
@@ -75,8 +75,7 @@ export class BinaryManager {
 
   /** Fetch a specific release by version tag. */
   async getRelease(version: string): Promise<GitHubRelease> {
-    if (version === 'latest')
-      return this.getLatestRelease()
+    if (version === 'latest') return this.getLatestRelease()
 
     const url = `${GITHUB_RELEASES_API}/tags/v${version}`
     return this.fetchJson(url)
@@ -94,8 +93,7 @@ export class BinaryManager {
       https.get(url, options, (res) => {
         if (res.statusCode === 301 || res.statusCode === 302) {
           const location = res.headers.location
-          if (location)
-            return this.fetchJson(location).then(resolve).catch(reject)
+          if (location) return this.fetchJson(location).then(resolve).catch(reject)
           return reject(new Error('Redirect without location header'))
         }
         if (res.statusCode !== 200) {
@@ -149,8 +147,7 @@ export class BinaryManager {
 
         res.on('data', (chunk) => {
           receivedBytes += chunk.length
-          if (totalBytes > 0 && progress)
-            progress(Math.round((receivedBytes / totalBytes) * 100))
+          if (totalBytes > 0 && progress) progress(Math.round((receivedBytes / totalBytes) * 100))
         })
 
         res.pipe(file)
@@ -202,8 +199,10 @@ export class BinaryManager {
     const assetName = this.getAssetName(version)
     const asset = release.assets.find((a) => a.name === assetName)
 
-    if (!asset)
-      throw new Error(`Could not find asset '${assetName}' in release ${release.tag_name}`)
+    if (!asset) {
+      const msg = `Could not find asset '${assetName}' in release ${release.tag_name}`
+      throw new Error(msg)
+    }
 
     // Ensure the binary directory exists
     fs.mkdirSync(this.binaryDir, { recursive: true })
@@ -233,10 +232,8 @@ export class BinaryManager {
     Logger.info('Download complete. Extracting...')
 
     // Extract the archive
-    if (assetName.endsWith('.zip'))
-      await this.extractZip(archivePath, this.binaryDir)
-    else
-      await this.extractTarGz(archivePath, this.binaryDir)
+    if (assetName.endsWith('.zip')) await this.extractZip(archivePath, this.binaryDir)
+    else await this.extractTarGz(archivePath, this.binaryDir)
 
     // Clean up the archive
     fs.unlinkSync(archivePath)
@@ -247,8 +244,7 @@ export class BinaryManager {
     // Make the binary executable on Unix
     if (process.platform !== 'win32') {
       fs.chmodSync(this.binaryPath, 0o755)
-      if (fs.existsSync(this.cliPath))
-        fs.chmodSync(this.cliPath, 0o755)
+      if (fs.existsSync(this.cliPath)) fs.chmodSync(this.cliPath, 0o755)
     }
 
     // Save the version
@@ -271,8 +267,7 @@ export class BinaryManager {
     const lemonadeName = isWindows ? 'lemonade.exe' : 'lemonade'
 
     // If the binary is already in the right place, nothing to do
-    if (fs.existsSync(this.binaryPath))
-      return
+    if (fs.existsSync(this.binaryPath)) return
 
     // Find a subdirectory that contains the lemond executable
     const found = this.findFile(this.binaryDir, lemondName)
@@ -302,8 +297,7 @@ export class BinaryManager {
       if (entry.isDirectory()) this.mergeDirectory(srcPath, dstPath)
       else {
         // Do not overwrite an existing file unless it's the binary
-        if (fs.existsSync(dstPath) && entry.name !== 'lemond.exe' && entry.name !== 'lemond')
-          continue
+        if (fs.existsSync(dstPath) && entry.name !== 'lemond.exe' && entry.name !== 'lemond') continue
         fs.mkdirSync(path.dirname(dstPath), { recursive: true })
         fs.copyFileSync(srcPath, dstPath)
       }

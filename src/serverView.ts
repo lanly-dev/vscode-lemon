@@ -3,6 +3,7 @@ import { Logger } from './logger'
 import { LemonadeClient } from './lemonadeClient'
 import { ServerManager } from './serverManager'
 import { BinaryManager } from './binaryManager'
+import { ServerStatus } from './interfaces'
 import type { HealthResponse, LemonadeModel } from './interfaces'
 
 /** A server instance shown in the tree view. */
@@ -11,7 +12,7 @@ interface ServerInstance {
   name: string
   url: string
   isOwn: boolean
-  status: 'running' | 'stopped' | 'starting' | 'error'
+  status: ServerStatus
   version?: string
   health?: HealthResponse
   models?: LemonadeModel[]
@@ -66,26 +67,26 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
     let displayUrl = ''
 
     // Check if we should show a switch prompt
-    const showSwitchPrompt = this.standaloneServer?.status === 'running'
+    const showSwitchPrompt = this.standaloneServer?.status === ServerStatus.RUNNING
       && this.serverManager.isEmbeddedSelected
-      && this.lemonServer?.status === 'running'
+      && this.lemonServer?.status === ServerStatus.RUNNING
 
-    if (this.standaloneServer?.status === 'running') {
+    if (this.standaloneServer?.status === ServerStatus.RUNNING) {
       // Show standalone server if it's running
       displayServer = this.standaloneServer
       displayName = 'Standalone Lemonade'
       displayUrl = this.standaloneServer.url
-    } else if (this.lemonServer?.status === 'running') {
+    } else if (this.lemonServer?.status === ServerStatus.RUNNING) {
       // Fall back to embedded server if running
       displayServer = this.lemonServer
       displayName = 'lemon (Embedded)'
       displayUrl = this.lemonServer.url
-    } else if (this.standaloneServer?.status === 'starting') {
+    } else if (this.standaloneServer?.status === ServerStatus.STARTING) {
       // Show standalone if it's starting
       displayServer = this.standaloneServer
       displayName = 'Standalone Lemonade'
       displayUrl = this.standaloneServer.url
-    } else if (this.lemonServer?.status === 'starting') {
+    } else if (this.lemonServer?.status === ServerStatus.STARTING) {
       // Show embedded if it's starting
       displayServer = this.lemonServer
       displayName = 'lemon (Embedded)'
@@ -98,7 +99,7 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
     }
 
     // Add switch prompt as first item if standalone is running and embedded is selected
-    if (showSwitchPrompt && this.standaloneServer?.status === 'running') {
+    if (showSwitchPrompt && this.standaloneServer?.status === ServerStatus.RUNNING) {
       const switchItem = new vscode.TreeItem(
         '$(arrow-right) Switch to Standalone Lemonade',
         vscode.TreeItemCollapsibleState.None
@@ -227,7 +228,7 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
       modelsHeader.contextValue = 'LEMOND_MODELS_HEADER'
       modelsHeader.tooltip = server.id
       items.push(modelsHeader)
-    } else if (server.status === 'running') {
+    } else if (server.status === ServerStatus.RUNNING) {
       const noModels = new vscode.TreeItem(
         'No models available',
         vscode.TreeItemCollapsibleState.None
@@ -309,7 +310,7 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
         name: 'Standalone Lemonade',
         url: `http://localhost:${standalonePort}`,
         isOwn: false,
-        status: 'running',
+        status: ServerStatus.RUNNING,
         health,
         models,
         maxLoadedModels: health.all_models_loaded.length
@@ -320,12 +321,12 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
         name: 'Standalone Lemonade',
         url: `http://localhost:${standalonePort}`,
         isOwn: false,
-        status: 'stopped'
+        status: ServerStatus.STOPPED
       }
     }
 
     // Check lemon server
-    if (this.serverManager.status === 'running') {
+    if (this.serverManager.status === ServerStatus.RUNNING) {
       try {
         const health = await this.client.getHealth()
         const models = await this.client.listModels()
@@ -336,7 +337,7 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
           name: 'lemon (Embedded)',
           url: this.serverManager.url,
           isOwn: true,
-          status: 'running',
+          status: ServerStatus.RUNNING,
           version: this.binaryManager.getInstalledVersion() ?? undefined,
           health,
           models,
@@ -348,7 +349,7 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
           name: 'lemon (Embedded)',
           url: this.serverManager.url,
           isOwn: true,
-          status: 'error',
+          status: ServerStatus.ERROR,
           version: this.binaryManager.getInstalledVersion() ?? undefined,
           error: err instanceof Error ? err.message : String(err)
         }
@@ -371,13 +372,13 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
   /** Get the status text for a server status. */
   private getStatusText(status: ServerInstance['status']): string {
     switch (status) {
-    case 'running':
+    case ServerStatus.RUNNING:
       return 'Running'
-    case 'starting':
+    case ServerStatus.STARTING:
       return 'Starting...'
-    case 'stopped':
+    case ServerStatus.STOPPED:
       return 'Stopped'
-    case 'error':
+    case ServerStatus.ERROR:
       return 'Error'
     default:
       return 'Unknown'
@@ -387,13 +388,13 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
   /** Get the status icon for a server status. */
   private getStatusIcon(status: ServerInstance['status']): string {
     switch (status) {
-    case 'running':
+    case ServerStatus.RUNNING:
       return 'debug-start'
-    case 'starting':
+    case ServerStatus.STARTING:
       return 'loading~spin'
-    case 'stopped':
+    case ServerStatus.STOPPED:
       return 'debug-stop'
-    case 'error':
+    case ServerStatus.ERROR:
       return 'error'
     default:
       return 'question'
@@ -403,13 +404,13 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
   /** Get the status color for a server status. */
   private getStatusColor(status: ServerInstance['status']): string {
     switch (status) {
-    case 'running':
+    case ServerStatus.RUNNING:
       return 'charts.green'
-    case 'starting':
+    case ServerStatus.STARTING:
       return 'charts.yellow'
-    case 'stopped':
+    case ServerStatus.STOPPED:
       return 'charts.gray'
-    case 'error':
+    case ServerStatus.ERROR:
       return 'charts.red'
     default:
       return 'charts.gray'

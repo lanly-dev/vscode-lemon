@@ -2,6 +2,7 @@ import * as vscode from 'vscode'
 import { Logger } from './logger'
 import { LemonadeClient } from './lemonadeClient'
 import { ServerManager } from './serverManager'
+import { ServerStatus } from './interfaces'
 import type { ChatMessage } from './interfaces'
 
 /**
@@ -27,10 +28,10 @@ export class ChatParticipant {
 
     // Update client when server status changes to running
     this.serverManager.onStatusChange((status) => {
-      if (status === 'running') {
-        this.updateClientForSelectedServer()
-        this.selectedModel = undefined
-      }
+      if (status !== ServerStatus.RUNNING) return
+      this.updateClientForSelectedServer()
+      this.selectedModel = undefined
+
     })
   }
 
@@ -57,7 +58,7 @@ export class ChatParticipant {
     }
 
     // Try to get loaded models from the server
-    if (this.serverManager.status !== 'running') return undefined
+    if (this.serverManager.status !== ServerStatus.RUNNING) return
 
     try {
       const health = await this.client.getHealth()
@@ -72,7 +73,7 @@ export class ChatParticipant {
         vscode.window.showWarningMessage(
           'No models available. Please pull a model first using the "Lemon: Pull Model" command.'
         )
-        return undefined
+        return
       }
 
       const items = models.map((m) => ({
@@ -113,7 +114,7 @@ export class ChatParticipant {
     Logger.info(`Chat request received: "${request.prompt.substring(0, 100)}"`)
 
     // Check if server is running
-    if (this.serverManager.status !== 'running') {
+    if (this.serverManager.status !== ServerStatus.RUNNING) {
       const start = await vscode.window.showInformationMessage(
         'Lemonade Server is not running. Start it now?',
         'Start Server',
