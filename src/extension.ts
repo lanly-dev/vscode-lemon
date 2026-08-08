@@ -43,7 +43,11 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const d5 = rc('lemon.openChat', () => ChatParticipant.openChat())
 
-  const d6 = rc('lemon.pullModel', async () => {
+  const d6 = rc('lemon.openSettings', () => {
+    vscode.commands.executeCommand('workbench.action.openSettings', '@ext:lanly-dev.lemon')
+  })
+
+  const d7 = rc('lemon.pullModel', async () => {
     if (serverManager.status !== ServerStatus.RUNNING) {
       const start = await vscode.window.showInformationMessage(
         'Lemonade Server is not running. Start it now?',
@@ -87,7 +91,7 @@ export async function activate(context: vscode.ExtensionContext) {
     )
   })
 
-  const d7 = rc('lemon.loadModel', async (item?: { modelId?: string }) => {
+  const d8 = rc('lemon.loadModel', async (item?: { modelId?: string }) => {
     if (serverManager.status !== ServerStatus.RUNNING) {
       vscode.window.showErrorMessage('Lemonade Server is not running')
       return
@@ -141,7 +145,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   })
 
-  const d8 = rc('lemon.unloadModel', async (item?: { modelId?: string }) => {
+  const d9 = rc('lemon.unloadModel', async (item?: { modelId?: string }) => {
     if (serverManager.status !== ServerStatus.RUNNING) {
       vscode.window.showErrorMessage('Lemonade Server is not running')
       return
@@ -183,7 +187,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   })
 
-  const d9 = rc('lemon.selectModel', async () => {
+  const d10 = rc('lemon.selectModel', async () => {
     if (serverManager.status !== ServerStatus.RUNNING) {
       vscode.window.showErrorMessage('Lemonade Server is not running')
       return
@@ -215,9 +219,9 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   })
 
-  const d10 = rc('lemon.refreshServer', () => provider.refresh())
+  const d11 = rc('lemon.refreshServer', () => provider.refresh())
 
-  const d11 = rc('lemon.switchToStandalone', async () => {
+  const d12 = rc('lemon.switchToStandalone', async () => {
     const standalonePort = serverManager.standalonePort
     const standaloneUrl = `http://localhost:${standalonePort}`
 
@@ -230,7 +234,7 @@ export async function activate(context: vscode.ExtensionContext) {
     provider.refresh()
   })
 
-  context.subscriptions.push(d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11)
+  context.subscriptions.push(d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12)
 
   // Check for auto-start
   const config = vscode.workspace.getConfiguration('lemon')

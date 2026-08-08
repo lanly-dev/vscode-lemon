@@ -1,7 +1,8 @@
 {
   "name": "lemon",
-  "displayName": "lemon 🍋",
+  "displayName": "Lemon 🍋",
   "description": "Run a local AI chat server powered by Lemonade Server directly in VS Code",
+  "publisher": "lanly-dev",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.125.0"
@@ -52,6 +53,11 @@
       {
         "command": "lemon.openChat",
         "title": "Lemon: Open Chat"
+      },
+      {
+        "command": "lemon.openSettings",
+        "title": "Lemon: Open Settings",
+        "icon": "$(gear)"
       },
       {
         "command": "lemon.pullModel",
@@ -109,6 +115,11 @@
           "command": "lemon.pullModel",
           "when": "view == lemon.serversView",
           "group": "navigation"
+        },
+        {
+          "command": "lemon.openSettings",
+          "when": "view == lemon.serversView",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
@@ -125,7 +136,7 @@
       ]
     },
     "configuration": {
-      "title": "lemon",
+      "title": "Lemon",
       "properties": {
         "lemon.serverPort": {
           "type": "number",
