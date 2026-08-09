@@ -5,7 +5,7 @@ import { LemonadeClient } from './lemonadeClient'
 import { Logger } from './logger'
 import { ServerManager } from './serverManager'
 import { ServerStatus } from './interfaces'
-import { ServerViewProvider } from './serverView'
+import { ServerViewProvider } from './serverTreeview'
 
 export async function activate(context: vscode.ExtensionContext) {
   const rc = vscode.commands.registerCommand

@@ -9,7 +9,6 @@ import { Logger } from './logger'
 import type { GitHubRelease } from './interfaces'
 
 const execAsync = promisify(exec)
-
 const GITHUB_API = 'https://api.github.com/repos/lemonade-sdk/lemonade/releases/latest'
 
 //  Manages downloading, extracting, and locating the Lemonade Server embeddable binary.
