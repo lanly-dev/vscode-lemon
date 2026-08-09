@@ -51,12 +51,9 @@ The Lemonade chat participant supports the following slash commands:
 |---------|---------|-------------|
 | `lemon.serverPort` | `13305` | Port for the standalone Lemonade Server |
 | `lemon.embeddedPort` | `8000` | Port for the embedded lemon server |
-| `lemon.autoStart` | `false` | Automatically start the server when the extension activates |
-| `lemon.useExistingServer` | `true` | Connect to an existing Lemonade Server if one is already running on the configured port |
-| `lemon.defaultModel` | `""` | Default model to use for chat |
-| `lemon.binaryVersion` | `"latest"` | Lemonade Server binary version to download (e.g., '11.5.1' or 'latest') |
-| `lemon.customServerUrl` | `""` | Custom Lemonade Server URL to use for chat (e.g., http://localhost:13305) |
-| `lemon.maxLoadedModels` | `1` | Maximum number of models that can be loaded simultaneously for the embedded server. Use `-1` for unlimited. |
+| `lemon.chatModel` | `""` | Model to use for chat (leave empty to be prompted) |
+| `lemon.customServerUrl` | `http://localhost` | Custom Lemonade Server URL to use for chat (e.g., http://localhost:13305) |
+| `lemon.maxLoadedModels` | (unset) | Maximum number of loaded models, Use `-1` for unlimited. |
 
 ## Server Selection
 
@@ -87,8 +84,7 @@ Shows the currently selected server (either standalone or embedded):
 The extension's `lemon` binary is stored in the extension's own **`bin/lemonade-server/` directory** — completely separate from any system-installed Lemonade Server. The two installations don't share binaries, models, or configuration.
 
 **Port conflict handling**: Before starting its own server, the extension checks if a Lemonade Server is already running on the configured port (default: 13305):
-- If a Lemonade Server is found and `lemon.useExistingServer` is `true` (default) → the extension **connects to the existing server** instead of starting its own
-- If a Lemonade Server is found but `useExistingServer` is `false` → the extension shows an error with instructions
+- If a Lemonade Server is found → the extension **connects to the existing server** instead of starting its own
 - If the port is in use by another application → the extension shows an error suggesting a different port
 - If the port is free → the extension downloads and starts its own private `lemon` instance
 

@@ -236,16 +236,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12)
 
-  // Check for auto-start
-  const config = vscode.workspace.getConfiguration('lemon')
-  const autoStart = config.get<boolean>('autoStart', false)
-  if (autoStart) {
-    Logger.info('Auto-start is enabled, starting server...')
-    serverManager.start().catch((err: unknown) => {
-      Logger.error('Auto-start failed', err)
-    })
-  }
-
   // Check for updates in the background
   binaryManager.checkForUpdates().catch((err: unknown) => {
     Logger.error('Update check failed', err)

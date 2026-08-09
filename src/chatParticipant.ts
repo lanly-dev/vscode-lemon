@@ -48,13 +48,13 @@ export class ChatParticipant {
     // Check if a model is already selected
     if (this.selectedModel) return this.selectedModel
 
-    // Check config for default model
+    // Check config for chat model
     const config = vscode.workspace.getConfiguration('lemon')
-    const defaultModel = config.get<string>('defaultModel', '')
+    const chatModel = config.get<string>('chatModel', '')
 
-    if (defaultModel) {
-      this.selectedModel = defaultModel
-      return defaultModel
+    if (chatModel) {
+      this.selectedModel = chatModel
+      return chatModel
     }
 
     // Try to get loaded models from the server

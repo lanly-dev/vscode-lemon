@@ -148,35 +148,18 @@
           "default": 8000,
           "description": "Port for the embedded lemon server"
         },
-        "lemon.autoStart": {
-          "type": "boolean",
-          "default": false,
-          "description": "Automatically start the server when the extension activates"
-        },
-        "lemon.useExistingServer": {
-          "type": "boolean",
-          "default": true,
-          "description": "Connect to an existing Lemonade Server if one is already running on the configured port"
-        },
-        "lemon.defaultModel": {
+        "lemon.chatModel": {
           "type": "string",
-          "default": "",
-          "description": "Default model to use for chat (leave empty to be prompted)"
-        },
-        "lemon.binaryVersion": {
-          "type": "string",
-          "default": "latest",
-          "description": "Lemonade Server binary version to download (e.g., '11.5.1' or 'latest')"
+          "description": "Last model to use for chat (leave empty to be prompted)"
         },
         "lemon.customServerUrl": {
           "type": "string",
-          "default": "",
-          "description": "Custom Lemonade Server URL to use for chat (e.g., http://localhost:13305)"
+          "default": "http://localhost",
+          "description": "Custom Lemonade Server URL (e.g., http://localhost:13305)"
         },
         "lemon.maxLoadedModels": {
           "type": "number",
-          "default": 1,
-          "description": "Maximum number of models that can be loaded simultaneously for the embedded server. Use -1 for unlimited."
+          "description": "Maximum number of loaded models, Use -1 for unlimited."
         }
       }
     }

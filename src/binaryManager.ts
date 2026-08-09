@@ -11,7 +11,6 @@ import type { GitHubRelease } from './interfaces'
 const execAsync = promisify(exec)
 
 const GITHUB_API = 'https://api.github.com/repos/lemonade-sdk/lemonade/releases/latest'
-const GITHUB_RELEASES_API = 'https://api.github.com/repos/lemonade-sdk/lemonade/releases'
 
 //  Manages downloading, extracting, and locating the Lemonade Server embeddable binary.
 export class BinaryManager {
@@ -71,14 +70,6 @@ export class BinaryManager {
   /** Fetch the latest release info from GitHub. */
   async getLatestRelease(): Promise<GitHubRelease> {
     return this.fetchJson(GITHUB_API)
-  }
-
-  /** Fetch a specific release by version tag. */
-  async getRelease(version: string): Promise<GitHubRelease> {
-    if (version === 'latest') return this.getLatestRelease()
-
-    const url = `${GITHUB_RELEASES_API}/tags/v${version}`
-    return this.fetchJson(url)
   }
 
   /** Fetch JSON from a URL with proper headers. */
@@ -186,12 +177,9 @@ export class BinaryManager {
 
   /** Download and install the Lemonade Server binary. */
   async downloadBinary(): Promise<string> {
-    const config = vscode.workspace.getConfiguration('lemon')
-    const versionConfig = config.get<string>('binaryVersion', 'latest')
+    Logger.info('Fetching latest release...')
 
-    Logger.info(`Fetching release info (version: ${versionConfig})...`)
-
-    const release = await this.getRelease(versionConfig)
+    const release = await this.getLatestRelease()
     const version = release.tag_name.replace(/^v/, '')
     Logger.info(`Latest release: ${release.tag_name}`)
 
