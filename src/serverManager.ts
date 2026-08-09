@@ -19,6 +19,7 @@ export class ServerManager {
   private _status: ServerStatus = ServerStatus.STOPPED
   private _usingExistingServer = false
   private client: LemonadeClient
+  private _modelClient?: LemonadeClient
   private process: ChildProcess | null = null
   private statusBarItem: vscode.StatusBarItem
   private statusChangeCallbacks: Array<(status: ServerStatus) => void> = []
@@ -78,6 +79,25 @@ export class ServerManager {
   /** Get whether the embedded server is selected. */
   get isEmbeddedSelected(): boolean {
     return !this._serverUrl || this.selectedServerUrl === this.url
+  }
+
+  /** A client bound to the currently selected server for model operations. */
+  getClient(): LemonadeClient {
+    if (!this._modelClient) this._modelClient = new LemonadeClient(0)
+    this._modelClient.setBaseUrl(this.selectedServerUrl)
+    return this._modelClient
+  }
+
+  /** Ensure a server is running, offering to start it if needed. */
+  async ensureRunning(): Promise<boolean> {
+    if (this._status === ServerStatus.RUNNING) return true
+    const action = await vscode.window.showInformationMessage(
+      'Lemonade Server is not running. Start it now?',
+      'Start Server',
+      'Cancel'
+    )
+    if (action !== 'Start Server') return false
+    return this.start()
   }
 
   /** Set the selected server for chat. */

@@ -1,10 +1,8 @@
 import * as vscode from 'vscode'
 import { BinaryManager } from './binaryManager'
 import { ChatParticipant } from './chatParticipant'
-import { LemonadeClient } from './lemonadeClient'
 import { Logger } from './logger'
 import { ServerManager } from './serverManager'
-import { ServerStatus } from './interfaces'
 import { ServerViewProvider } from './serverTreeview'
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -48,16 +46,7 @@ export async function activate(context: vscode.ExtensionContext) {
   })
 
   const d7 = rc('lemon.pullModel', async () => {
-    if (serverManager.status !== ServerStatus.RUNNING) {
-      const start = await vscode.window.showInformationMessage(
-        'Lemonade Server is not running. Start it now?',
-        'Start Server',
-        'Cancel'
-      )
-      if (start !== 'Start Server') return
-      const started = await serverManager.start()
-      if (!started) return
-    }
+    if (!await serverManager.ensureRunning()) return
 
     const modelName = await vscode.window.showInputBox({
       title: 'Pull Model',
@@ -66,9 +55,7 @@ export async function activate(context: vscode.ExtensionContext) {
     })
 
     if (!modelName) return
-
-    const client = new LemonadeClient(0)
-    client.setBaseUrl(serverManager.selectedServerUrl)
+    const client = serverManager.getClient()
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
@@ -92,13 +79,8 @@ export async function activate(context: vscode.ExtensionContext) {
   })
 
   const d8 = rc('lemon.loadModel', async (item?: { modelId?: string }) => {
-    if (serverManager.status !== ServerStatus.RUNNING) {
-      vscode.window.showErrorMessage('Lemonade Server is not running')
-      return
-    }
-
-    const client = new LemonadeClient(0)
-    client.setBaseUrl(serverManager.selectedServerUrl)
+    if (!await serverManager.ensureRunning()) return
+    const client = serverManager.getClient()
     let modelName = item?.modelId
 
     if (!modelName) {
@@ -146,13 +128,8 @@ export async function activate(context: vscode.ExtensionContext) {
   })
 
   const d9 = rc('lemon.unloadModel', async (item?: { modelId?: string }) => {
-    if (serverManager.status !== ServerStatus.RUNNING) {
-      vscode.window.showErrorMessage('Lemonade Server is not running')
-      return
-    }
-
-    const client = new LemonadeClient(0)
-    client.setBaseUrl(serverManager.selectedServerUrl)
+    if (!await serverManager.ensureRunning()) return
+    const client = serverManager.getClient()
     let modelName = item?.modelId
 
     if (!modelName) {
@@ -188,13 +165,8 @@ export async function activate(context: vscode.ExtensionContext) {
   })
 
   const d10 = rc('lemon.selectModel', async () => {
-    if (serverManager.status !== ServerStatus.RUNNING) {
-      vscode.window.showErrorMessage('Lemonade Server is not running')
-      return
-    }
-
-    const client = new LemonadeClient(0)
-    client.setBaseUrl(serverManager.selectedServerUrl)
+    if (!await serverManager.ensureRunning()) return
+    const client = serverManager.getClient()
     try {
       const models = await client.listModels()
       if (models.length === 0) {
