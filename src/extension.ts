@@ -79,116 +79,23 @@ export async function activate(context: vscode.ExtensionContext) {
   })
 
   const d8 = rc('lemon.loadModel', async (item?: { modelId?: string }) => {
-    if (!await serverManager.ensureRunning()) return
-    const client = serverManager.getClient()
-    let modelName = item?.modelId
-
-    if (!modelName) {
-      try {
-        const models = await client.listModels()
-        if (models.length === 0) {
-          vscode.window.showWarningMessage('No models available. Pull a model first.')
-          return
-        }
-        const items: vscode.QuickPickItem[] = models.map((m) => ({
-          label: m.id,
-          description: m.owned_by ?? ''
-        }))
-        const selected = await vscode.window.showQuickPick(items, {
-          title: 'Select a model to load',
-          placeHolder: 'Choose a model'
-        })
-        if (!selected) return
-        modelName = selected.label
-      } catch (err: unknown) {
-        Logger.error('Failed to list models', err)
-        vscode.window.showErrorMessage(`Failed to list models: ${err}`)
-        return
-      }
-    }
-
-    try {
-      await vscode.window.withProgress(
-        {
-          location: vscode.ProgressLocation.Notification,
-          title: `Loading model: ${modelName}`,
-          cancellable: false
-        },
-        async () => {
-          await client.loadModel(modelName!)
-        }
-      )
-      vscode.window.showInformationMessage(`Model '${modelName}' loaded successfully`)
-      chatParticipant.setSelectedModel(modelName)
-      provider.refresh()
-    } catch (err: unknown) {
-      Logger.error('Failed to load model', err)
-      vscode.window.showErrorMessage(`Failed to load model: ${err}`)
-    }
+    const modelName = await serverManager.loadModel(item?.modelId)
+    if (!modelName) return
+    chatParticipant.setSelectedModel(modelName)
+    provider.refresh()
   })
 
   const d9 = rc('lemon.unloadModel', async (item?: { modelId?: string }) => {
-    if (!await serverManager.ensureRunning()) return
-    const client = serverManager.getClient()
-    let modelName = item?.modelId
-
-    if (!modelName) {
-      try {
-        const health = await client.getHealth()
-        const loadedModels = health.all_models_loaded.map((m) => m.model_name)
-        if (loadedModels.length === 0) {
-          vscode.window.showInformationMessage('No models are currently loaded')
-          return
-        }
-        const items: vscode.QuickPickItem[] = loadedModels.map((m) => ({ label: m }))
-        const selected = await vscode.window.showQuickPick(items, {
-          title: 'Select a model to unload',
-          placeHolder: 'Choose a model'
-        })
-        if (!selected) return
-        modelName = selected.label
-      } catch (err: unknown) {
-        Logger.error('Failed to get loaded models', err)
-        vscode.window.showErrorMessage(`Failed to get loaded models: ${err}`)
-        return
-      }
-    }
-
-    try {
-      await client.unloadModel(modelName)
-      vscode.window.showInformationMessage(`Model '${modelName}' unloaded successfully`)
-      provider.refresh()
-    } catch (err: unknown) {
-      Logger.error('Failed to unload model', err)
-      vscode.window.showErrorMessage(`Failed to unload model: ${err}`)
-    }
+    const modelName = await serverManager.unloadModel(item?.modelId)
+    if (!modelName) return
+    provider.refresh()
   })
 
   const d10 = rc('lemon.selectModel', async () => {
-    if (!await serverManager.ensureRunning()) return
-    const client = serverManager.getClient()
-    try {
-      const models = await client.listModels()
-      if (models.length === 0) {
-        vscode.window.showWarningMessage('No models available. Pull a model first.')
-        return
-      }
-      const items: vscode.QuickPickItem[] = models.map((m) => ({
-        label: m.id,
-        description: m.owned_by ?? ''
-      }))
-      const selected = await vscode.window.showQuickPick(items, {
-        title: 'Select active model for chat',
-        placeHolder: 'Choose a model'
-      })
-      if (selected) {
-        chatParticipant.setSelectedModel(selected.label)
-        vscode.window.showInformationMessage(`Selected model: ${selected.label}`)
-      }
-    } catch (err: unknown) {
-      Logger.error('Failed to select model', err)
-      vscode.window.showErrorMessage(`Failed to select model: ${err}`)
-    }
+    const selected = await serverManager.selectModel()
+    if (!selected) return
+    chatParticipant.setSelectedModel(selected)
+    vscode.window.showInformationMessage(`Selected model: ${selected}`)
   })
 
   const d11 = rc('lemon.refreshServer', () => provider.refresh())

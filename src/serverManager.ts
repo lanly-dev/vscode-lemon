@@ -88,6 +88,123 @@ export class ServerManager {
     return this._modelClient
   }
 
+  /**
+   * Load a model on the selected server.
+   * If no model name is supplied, the user is prompted to pick one.
+   * Resolves to the loaded model name, or undefined if cancelled/failed.
+   */
+  async loadModel(modelName?: string): Promise<string | undefined> {
+    if (!await this.ensureRunning()) return undefined
+    const client = this.getClient()
+    const name = await this.resolveModelName(modelName)
+
+    if (!name) return undefined
+
+    try {
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: `Loading model: ${name}`,
+          cancellable: false
+        },
+        async () => {
+          await client.loadModel(name!)
+        }
+      )
+      vscode.window.showInformationMessage(`Model '${name}' loaded successfully`)
+      return name
+    } catch (err: unknown) {
+      Logger.error('Failed to load model', err)
+      vscode.window.showErrorMessage(`Failed to load model: ${err}`)
+      return undefined
+    }
+  }
+
+  /**
+   * Unload a model on the selected server.
+   * If no model name is supplied, the user is prompted to pick one of the loaded models.
+   * Resolves to the unloaded model name, or undefined if cancelled/failed.
+   */
+  async unloadModel(modelName?: string): Promise<string | undefined> {
+    if (!await this.ensureRunning()) return undefined
+    const client = this.getClient()
+    let name = modelName
+
+    if (!name) {
+      try {
+        const health = await client.getHealth()
+        const loadedModels = health.all_models_loaded.map((m) => m.model_name)
+        if (loadedModels.length === 0) {
+          vscode.window.showInformationMessage('No models are currently loaded')
+          return undefined
+        }
+        const items: vscode.QuickPickItem[] = loadedModels.map((m) => ({ label: m }))
+        const selected = await vscode.window.showQuickPick(items, {
+          title: 'Select a model to unload',
+          placeHolder: 'Choose a model'
+        })
+        if (!selected) return undefined
+        name = selected.label
+      } catch (err: unknown) {
+        Logger.error('Failed to get loaded models', err)
+        vscode.window.showErrorMessage(`Failed to get loaded models: ${err}`)
+        return undefined
+      }
+    }
+
+    try {
+      await client.unloadModel(name)
+      vscode.window.showInformationMessage(`Model '${name}' unloaded successfully`)
+      return name
+    } catch (err: unknown) {
+      Logger.error('Failed to unload model', err)
+      vscode.window.showErrorMessage(`Failed to unload model: ${err}`)
+      return undefined
+    }
+  }
+
+  /**
+   * Select an active model for chat.
+   * Prompts the user to pick a model from the available ones.
+   * Resolves to the selected model name, or undefined if cancelled/error.
+   */
+  async selectModel(): Promise<string | undefined> {
+    if (!await this.ensureRunning()) return undefined
+    return this.promptForModel('Select active model for chat')
+  }
+
+  /** If a model name isn't provided, prompt the user to pick one from the available models. */
+  private async resolveModelName(modelName?: string): Promise<string | undefined> {
+    if (modelName) return modelName
+    return this.promptForModel('Select a model to load')
+  }
+
+  /** Show a quick pick of the available models and return the selected model name. */
+  private async promptForModel(title: string): Promise<string | undefined> {
+    const client = this.getClient()
+
+    try {
+      const models = await client.listModels()
+      if (models.length === 0) {
+        vscode.window.showWarningMessage('No models available. Pull a model first.')
+        return undefined
+      }
+      const items: vscode.QuickPickItem[] = models.map((m) => ({
+        label: m.id,
+        description: m.owned_by ?? ''
+      }))
+      const selected = await vscode.window.showQuickPick(items, {
+        title,
+        placeHolder: 'Choose a model'
+      })
+      return selected?.label
+    } catch (err: unknown) {
+      Logger.error('Failed to list models', err)
+      vscode.window.showErrorMessage(`Failed to list models: ${err}`)
+      return undefined
+    }
+  }
+
   /** Ensure a server is running, offering to start it if needed. */
   async ensureRunning(): Promise<boolean> {
     if (this._status === ServerStatus.RUNNING) return true
