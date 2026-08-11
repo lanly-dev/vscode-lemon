@@ -113,7 +113,38 @@ export async function activate(context: vscode.ExtensionContext) {
     provider.refresh()
   })
 
-  context.subscriptions.push(d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12)
+  const d13 = rc('lemon.setMaxLoadedModels', async () => {
+    const config = vscode.workspace.getConfiguration('lemon')
+    const current = config.get<number>('maxLoadedModels', 1)
+    const currentText = current === -1 ? 'Unlimited' : String(current)
+
+    const value = await vscode.window.showInputBox({
+      title: 'Set Max Loaded Models',
+      prompt: `Current: ${currentText}. Enter the maximum number of loaded models (-1 for unlimited).`,
+      placeHolder: 'e.g. 1 or -1 for unlimited',
+      value: String(current),
+      validateInput: (input) => {
+        const trimmed = input.trim()
+        if (trimmed === '') return 'Please enter a number'
+        const n = Number(trimmed)
+        if (!Number.isInteger(n) || n < -1) return 'Enter an integer of -1 or greater (-1 = unlimited)'
+        return undefined
+      }
+    })
+    if (value === undefined || value.trim() === '') return
+
+    const n = Number(value)
+    try {
+      await serverManager.setMaxLoadedModels(n)
+      vscode.window.showInformationMessage(`Max loaded models set to ${n === -1 ? 'unlimited' : n}`)
+      provider.refresh()
+    } catch (err: unknown) {
+      Logger.error('Failed to set max loaded models', err)
+      vscode.window.showErrorMessage(`Failed to set max loaded models: ${err}`)
+    }
+  })
+
+  context.subscriptions.push(d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13)
 
   // Check for updates in the background
   binaryManager.checkForUpdates().catch((err: unknown) => {

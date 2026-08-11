@@ -332,7 +332,17 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
         const health = await this.client.getHealth()
         const models = await this.client.listModels()
         const config = vscode.workspace.getConfiguration('lemon')
-        const maxLoadedModels = config.get<number>('maxLoadedModels', 1)
+        let maxLoadedModels = config.get<number>('maxLoadedModels', 1)
+
+        // If the server reports its max_loaded_models, keep the extension config in sync
+        if (typeof health.max_loaded_models === 'number' && Number.isInteger(health.max_loaded_models)) {
+          maxLoadedModels = health.max_loaded_models
+          if (config.get<number>('maxLoadedModels', 1) !== maxLoadedModels) {
+            await config.update('maxLoadedModels', maxLoadedModels, vscode.ConfigurationTarget.Global)
+            Logger.info(`Synced lemon.maxLoadedModels from server to ${maxLoadedModels}`)
+          }
+        }
+
         this.lemonServer = {
           id: 'lemon',
           name: 'lemon (Embedded)',

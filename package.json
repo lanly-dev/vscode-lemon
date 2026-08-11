@@ -84,6 +84,10 @@
       {
         "command": "lemon.switchToStandalone",
         "title": "Lemon: Switch to Standalone Server"
+      },
+      {
+        "command": "lemon.setMaxLoadedModels",
+        "title": "Lemon: Set Max Loaded Models"
       }
     ],
     "viewsContainers": {
@@ -118,6 +122,11 @@
         },
         {
           "command": "lemon.openSettings",
+          "when": "view == lemon.serversView",
+          "group": "navigation"
+        },
+        {
+          "command": "lemon.setMaxLoadedModels",
           "when": "view == lemon.serversView",
           "group": "navigation"
         }

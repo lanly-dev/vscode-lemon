@@ -164,6 +164,27 @@ export class ServerManager {
   }
 
   /**
+   * Set the maximum number of concurrently loaded models.
+   * Persists the value to the lemon.maxLoadedModels config, and if the
+   * embedded server is running, pushes it to the running server immediately.
+   */
+  async setMaxLoadedModels(value: number): Promise<void> {
+    const config = vscode.workspace.getConfiguration('lemon')
+    await config.update('maxLoadedModels', value, vscode.ConfigurationTarget.Global)
+    Logger.info(`Set lemon.maxLoadedModels to ${value}`)
+
+    if (this._status === ServerStatus.RUNNING) {
+      const client = this.getClient()
+      await client.updateConfig({ max_loaded_models: value })
+      Logger.info('Pushed max_loaded_models to running server')
+    } else {
+      vscode.window.showInformationMessage(
+        'Server is not running. The setting will be applied on the next server start.'
+      )
+    }
+  }
+
+  /**
    * Select an active model for chat.
    * Prompts the user to pick a model from the available ones.
    * Resolves to the selected model name, or undefined if cancelled/error.

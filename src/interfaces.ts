@@ -33,6 +33,7 @@ export interface HealthResponse {
     is_streaming: boolean
     backend_url?: string
   }>
+  max_loaded_models?: number
 }
 
 /** A chat message in OpenAI format. */
