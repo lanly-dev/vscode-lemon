@@ -138,7 +138,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   })
 
-  context.subscriptions.push(d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14)
+  context.subscriptions.push(d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d13, d14)
 
   // Re-apply the selected server mode when the relevant settings change
   context.subscriptions.push(

@@ -2,6 +2,9 @@ import { ChildProcess, spawn } from 'child_process'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as vscode from 'vscode'
+import { ExtensionContext , window } from 'vscode'
+const { showErrorMessage, showInformationMessage, showWarningMessage } =  window
+const { showInputBox,showQuickPick } = window
 
 import { BinaryManager } from './binaryManager'
 import { LemonadeClient } from './lemonadeClient'
@@ -27,7 +30,7 @@ export class ServerManager {
   private statusChangeCallbacks: Array<(status: ServerStatus) => void> = []
   private selectionChangeCallbacks: Array<() => void> = []
 
-  constructor(private context: vscode.ExtensionContext, private binaryManager: BinaryManager) {
+  constructor(private context: ExtensionContext, private binaryManager: BinaryManager) {
     this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100)
     this.statusBarItem.command = 'lemon.startServer'
     this.context.subscriptions.push(this.statusBarItem)
@@ -91,7 +94,7 @@ export class ServerManager {
     if (!name) return undefined
 
     try {
-      await vscode.window.withProgress(
+      await window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
           title: `Loading model: ${name}`,
@@ -101,11 +104,11 @@ export class ServerManager {
           await client.loadModel(name!)
         }
       )
-      vscode.window.showInformationMessage(`Model '${name}' loaded successfully`)
+      showInformationMessage(`Model '${name}' loaded successfully`)
       return name
     } catch (err: unknown) {
       Logger.error('Failed to load model', err)
-      vscode.window.showErrorMessage(`Failed to load model: ${err}`)
+      showErrorMessage(`Failed to load model: ${err}`)
       return undefined
     }
   }
@@ -125,11 +128,11 @@ export class ServerManager {
         const health = await client.getHealth()
         const loadedModels = health.all_models_loaded.map((m) => m.model_name)
         if (loadedModels.length === 0) {
-          vscode.window.showInformationMessage('No models are currently loaded')
+          showInformationMessage('No models are currently loaded')
           return
         }
         const items: vscode.QuickPickItem[] = loadedModels.map((m) => ({ label: m }))
-        const selected = await vscode.window.showQuickPick(items, {
+        const selected = await showQuickPick(items, {
           title: 'Select a model to unload',
           placeHolder: 'Choose a model'
         })
@@ -137,17 +140,17 @@ export class ServerManager {
         name = selected.label
       } catch (err: unknown) {
         Logger.error('Failed to get loaded models', err)
-        vscode.window.showErrorMessage(`Failed to get loaded models: ${err}`)
+        showErrorMessage(`Failed to get loaded models: ${err}`)
         return
       }
     }
 
     try {
       await client.unloadModel(name)
-      vscode.window.showInformationMessage(`Model '${name}' unloaded successfully`)
+      showInformationMessage(`Model '${name}' unloaded successfully`)
     } catch (err: unknown) {
       Logger.error('Failed to unload model', err)
-      vscode.window.showErrorMessage(`Failed to unload model: ${err}`)
+      showErrorMessage(`Failed to unload model: ${err}`)
     }
   }
 
@@ -166,7 +169,7 @@ export class ServerManager {
       await client.updateConfig({ max_loaded_models: value })
       Logger.info('Pushed max_loaded_models to running server')
     } else {
-      vscode.window.showInformationMessage(
+      showInformationMessage(
         'Server is not running. The setting will be applied on the next server start.'
       )
     }
@@ -195,21 +198,21 @@ export class ServerManager {
     try {
       const models = await client.listModels()
       if (models.length === 0) {
-        vscode.window.showWarningMessage('No models available. Pull a model first.')
+        showWarningMessage('No models available. Pull a model first.')
         return undefined
       }
       const items: vscode.QuickPickItem[] = models.map((m) => ({
         label: m.id,
         description: m.owned_by ?? ''
       }))
-      const selected = await vscode.window.showQuickPick(items, {
+      const selected = await showQuickPick(items, {
         title,
         placeHolder: 'Choose a model'
       })
       return selected?.label
     } catch (err: unknown) {
       Logger.error('Failed to list models', err)
-      vscode.window.showErrorMessage(`Failed to list models: ${err}`)
+      showErrorMessage(`Failed to list models: ${err}`)
       return undefined
     }
   }
@@ -217,7 +220,7 @@ export class ServerManager {
   /** Ensure a server is running, offering to start it if needed. */
   async ensureRunning(): Promise<boolean> {
     if (this._status === ServerStatus.RUNNING) return true
-    const action = await vscode.window.showInformationMessage(
+    const action = await showInformationMessage(
       'Lemonade Server is not running. Start it now?',
       'Start Server',
       'Cancel'
@@ -243,7 +246,7 @@ export class ServerManager {
   /** Apply the configured `lemon.serverMode` to the in-memory server selection. */
   applyConfiguredServerMode(): void {
     const config = vscode.workspace.getConfiguration('lemon')
-    const mode = config.get<'auto' | 'standalone' | 'embedded' | 'custom'>('serverMode', 'auto')
+    const mode = config.get<'standalone' | 'embedded' | 'custom'>('serverMode')
     const standalonePort = config.get<number>('serverPort', 13305)
     const embeddedUrl = `http://localhost:${config.get<number>('embeddedPort', 8000)}`
 
@@ -323,7 +326,7 @@ export class ServerManager {
       detail: 'Enter any Lemonade Server URL to connect to'
     })
 
-    const selected = await vscode.window.showQuickPick(items, {
+    const selected = await showQuickPick(items, {
       title: 'Select Server for Chat',
       placeHolder: 'Choose which Lemonade Server to use'
     })
@@ -332,7 +335,7 @@ export class ServerManager {
 
     // Handle "Add Custom Server URL..."
     if (selected.label.includes('Add Custom Server URL')) {
-      const url = await vscode.window.showInputBox({
+      const url = await showInputBox({
         title: 'Custom Server URL',
         prompt: 'Enter the Lemonade Server URL (e.g., http://localhost:13305)',
         placeHolder: 'http://localhost:13305',
@@ -344,7 +347,7 @@ export class ServerManager {
       await config.update('customServerUrl', url, vscode.ConfigurationTarget.Global)
       await config.update('serverMode', 'custom', vscode.ConfigurationTarget.Global)
       this.setSelectedServer(url, 'Custom Server')
-      vscode.window.showInformationMessage(`Connected to custom server: ${url}`)
+      showInformationMessage(`Connected to custom server: ${url}`)
       return
     }
 
@@ -352,11 +355,11 @@ export class ServerManager {
     if (selected.label.includes('Standalone')) {
       await config.update('serverMode', 'standalone', vscode.ConfigurationTarget.Global)
       this.setSelectedServer(standaloneUrl, 'Standalone Lemonade')
-      vscode.window.showInformationMessage(`Using Standalone Lemonade at ${standaloneUrl}`)
+      showInformationMessage(`Using Standalone Lemonade at ${standaloneUrl}`)
     } else if (selected.label.includes('lemon')) {
       // If embedded server is not running, offer to start it
       if (this._status !== ServerStatus.RUNNING) {
-        const start = await vscode.window.showInformationMessage(
+        const start = await showInformationMessage(
           'The embedded lemon server is not running. Start it now?',
           'Start Server',
           'Cancel'
@@ -364,7 +367,7 @@ export class ServerManager {
         if (start === 'Start Server') {
           const started = await this.start()
           if (!started) {
-            vscode.window.showErrorMessage('Failed to start the embedded lemon server')
+            showErrorMessage('Failed to start the embedded lemon server')
             return
           }
         } else {
@@ -373,13 +376,13 @@ export class ServerManager {
           return
         }
       }
-      await config.update('serverMode', 'embedded', vscode.ConfigurationTarget.Global)
+      await config.update('targetServer', 'embedded', vscode.ConfigurationTarget.Global)
       this.setSelectedServer(embeddedUrl, 'lemon (Embedded)')
-      vscode.window.showInformationMessage(`Using lemon (Embedded) at ${embeddedUrl}`)
+      showInformationMessage(`Using lemon (Embedded) at ${embeddedUrl}`)
     } else if (selected.label.includes('Custom Server')) {
-      await config.update('serverMode', 'custom', vscode.ConfigurationTarget.Global)
+      await config.update('targetServer', 'custom', vscode.ConfigurationTarget.Global)
       this.setSelectedServer(defaultUrl, 'Custom Server')
-      vscode.window.showInformationMessage(`Using custom server: ${defaultUrl}`)
+      showInformationMessage(`Using custom server: ${defaultUrl}`)
     }
   }
 
@@ -421,13 +424,13 @@ export class ServerManager {
   /** Start the Lemonade Server. */
   async start(): Promise<boolean> {
     const config = vscode.workspace.getConfiguration('lemon')
-    const serverMode = config.get<'auto' | 'standalone' | 'embedded' | 'custom'>('serverMode', 'auto')
+    const serverMode = config.get<'standalone' | 'embedded' | 'custom'>('targetServer')
 
     // Custom mode: connect to a user-configured URL instead of launching a process.
     if (serverMode === 'custom') {
       const customUrl = config.get<string>('customServerUrl', '')
       if (!customUrl) {
-        vscode.window.showErrorMessage('No custom Lemonade Server URL configured. Set lemon.customServerUrl in settings first.')
+        showErrorMessage('No custom Lemonade Server URL configured. Set lemon.customServerUrl in settings first.')
         this.setStatus(ServerStatus.ERROR)
         return false
       }
@@ -440,12 +443,12 @@ export class ServerManager {
         this._usingExistingServer = true
         this.setSelectedServer(customUrl, 'Custom Server')
         this.setStatus(ServerStatus.RUNNING)
-        vscode.window.showInformationMessage(`Connected to custom Lemonade Server at ${customUrl}`)
+        showInformationMessage(`Connected to custom Lemonade Server at ${customUrl}`)
         return true
       } catch {
         this.setStatus(ServerStatus.ERROR)
-        vscode.window.showErrorMessage(
-          `Failed to connect to custom Lemonade Server at ${customUrl}. Check the URL in lemon.customServerUrl and that the server is running.`
+        showErrorMessage(
+          `Failed to connect to custom Lemonade Server at ${customUrl}.`
         )
         return false
       }
@@ -453,7 +456,7 @@ export class ServerManager {
 
     if (this._status === ServerStatus.RUNNING || this._status === ServerStatus.STARTING) {
       Logger.warn('Server is already running or starting')
-      vscode.window.showInformationMessage('Lemonade Server is already running')
+      showInformationMessage('Lemonade Server is already running')
       return true
     }
 
@@ -471,37 +474,18 @@ export class ServerManager {
         this.client = standaloneClient
         this.setSelectedServer(`http://localhost:${this._standalonePort}`, 'Standalone Lemonade')
         this.setStatus(ServerStatus.RUNNING)
-        vscode.window.showInformationMessage(`Connected to Standalone Lemonade at http://localhost:${this._standalonePort}`)
+        showInformationMessage(`Connected to Standalone Lemonade at http://localhost:${this._standalonePort}`)
         return true
       }
       this.setStatus(ServerStatus.ERROR)
-      vscode.window.showErrorMessage(
-        'Standalone Lemonade Server is not running. Start it, or set lemon.serverMode to "embedded" or "custom".'
+      showErrorMessage(
+        'Standalone Lemonade Server is not running. Start it, or set lemon.targetServer to "embedded" or "custom".'
       )
       return false
     }
 
     // Embedded mode: always start the embedded binary (do not auto-connect to standalone).
-    if (serverMode === 'embedded') {
-      this.setSelectedServer(`http://localhost:${this._embedPort}`, 'lemon (Embedded)')
-    }
-
-    // Auto mode (default): prefer a running standalone server, otherwise start embedded.
-    if (serverMode === 'auto') {
-      Logger.info('Checking for standalone Lemonade Server...')
-      const standaloneClient = new LemonadeClient(this._standalonePort)
-      const standaloneHealthy = await standaloneClient.checkHealth()
-      if (standaloneHealthy) {
-        // Connect to existing standalone server
-        Logger.info('Connecting to existing standalone Lemonade Server')
-        this._usingExistingServer = true
-        this.setSelectedServer(`http://localhost:${this._standalonePort}`, 'Standalone Lemonade')
-        this.client = standaloneClient
-        this.setStatus(ServerStatus.RUNNING)
-        vscode.window.showInformationMessage(`Connected to Lemonade Server at http://localhost:${this._standalonePort}`)
-        return true
-      }
-    }
+    if (serverMode === 'embedded') this.setSelectedServer(`http://localhost:${this._embedPort}`, 'lemon (Embedded)')
 
     // No standalone server found (or embedded mode forced), start embedded lemon
     this.client = new LemonadeClient(this._embedPort)
@@ -509,7 +493,7 @@ export class ServerManager {
     // Check if the embedded port is in use by something else
     const portInUse = await this.isPortInUse(this._embedPort)
     if (portInUse) {
-      vscode.window.showErrorMessage(
+      showErrorMessage(
         `Port ${this._embedPort} is already in use by another application. `
         + 'Please change the port in settings (lemon.embeddedPort).'
       )
@@ -557,7 +541,7 @@ export class ServerManager {
     } catch (err) {
       Logger.error('Failed to start server process', err)
       this.setStatus(ServerStatus.ERROR)
-      vscode.window.showErrorMessage(`Failed to start Lemonade Server: ${err}`)
+      showErrorMessage(`Failed to start Lemonade Server: ${err}`)
       return false
     }
 
@@ -575,7 +559,7 @@ export class ServerManager {
     this.process.on('error', (err) => {
       Logger.error('Server process error', err)
       this.setStatus(ServerStatus.ERROR)
-      vscode.window.showErrorMessage(`Lemonade Server error: ${err.message}`)
+      showErrorMessage(`Lemonade Server error: ${err.message}`)
     })
 
     this.process.on('exit', (code, signal) => {
@@ -590,12 +574,12 @@ export class ServerManager {
       this.setSelectedServer(`http://localhost:${this._embedPort}`, 'lemon (Embedded)')
       this.setStatus(ServerStatus.RUNNING)
       Logger.info('Lemonade Server is ready')
-      vscode.window.showInformationMessage('Lemonade Server started successfully')
+      showInformationMessage('Lemonade Server started successfully')
       return true
     }
     Logger.error('Server failed to become ready within timeout')
     this.setStatus(ServerStatus.ERROR)
-    vscode.window.showErrorMessage('Lemonade Server failed to start within 60 seconds. Check the output for details.')
+    showErrorMessage('Lemonade Server failed to start within 60 seconds. Check the output for details.')
     return false
   }
 
@@ -654,7 +638,7 @@ export class ServerManager {
       Logger.info('Disconnecting from existing Lemonade Server')
       this._usingExistingServer = false
       this.setStatus(ServerStatus.STOPPED)
-      vscode.window.showInformationMessage('Disconnected from Lemonade Server')
+      showInformationMessage('Disconnected from Lemonade Server')
       return
     }
 
@@ -687,7 +671,7 @@ export class ServerManager {
     this.process = null
     this.setStatus(ServerStatus.STOPPED)
     Logger.info('Lemonade Server stopped')
-    vscode.window.showInformationMessage('Lemonade Server stopped')
+    showInformationMessage('Lemonade Server stopped')
   }
 
   /** Restart the Lemonade Server. */

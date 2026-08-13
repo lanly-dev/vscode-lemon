@@ -293,9 +293,7 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
           status: ServerStatus.STOPPED
         }
       }
-    } else {
-      this.customServer = null
-    }
+    } else this.customServer = null
 
     // Check lemond server
     if (this.serverManager.status === ServerStatus.RUNNING) {
