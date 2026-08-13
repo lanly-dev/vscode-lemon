@@ -67,8 +67,7 @@ export class ServerManager {
 
   /** Get the currently selected server URL for chat. */
   get selectedServerUrl(): string {
-    if (this._serverUrl)
-      return this._serverUrl
+    if (this._serverUrl) return this._serverUrl
     return this.url
   }
 
@@ -99,7 +98,6 @@ export class ServerManager {
     if (!await this.ensureRunning()) return undefined
     const client = this.getClient()
     const name = await this.resolveModelName(modelName)
-
     if (!name) return undefined
 
     try {
@@ -127,8 +125,8 @@ export class ServerManager {
    * If no model name is supplied, the user is prompted to pick one of the loaded models.
    * Resolves to the unloaded model name, or undefined if cancelled/failed.
    */
-  async unloadModel(modelName?: string): Promise<string | undefined> {
-    if (!await this.ensureRunning()) return undefined
+  async unloadModel(modelName?: string): Promise<string | void> {
+    if (!await this.ensureRunning()) return
     const client = this.getClient()
     let name = modelName
 
@@ -138,30 +136,28 @@ export class ServerManager {
         const loadedModels = health.all_models_loaded.map((m) => m.model_name)
         if (loadedModels.length === 0) {
           vscode.window.showInformationMessage('No models are currently loaded')
-          return undefined
+          return
         }
         const items: vscode.QuickPickItem[] = loadedModels.map((m) => ({ label: m }))
         const selected = await vscode.window.showQuickPick(items, {
           title: 'Select a model to unload',
           placeHolder: 'Choose a model'
         })
-        if (!selected) return undefined
+        if (!selected) return
         name = selected.label
       } catch (err: unknown) {
         Logger.error('Failed to get loaded models', err)
         vscode.window.showErrorMessage(`Failed to get loaded models: ${err}`)
-        return undefined
+        return
       }
     }
 
     try {
       await client.unloadModel(name)
       vscode.window.showInformationMessage(`Model '${name}' unloaded successfully`)
-      return name
     } catch (err: unknown) {
       Logger.error('Failed to unload model', err)
       vscode.window.showErrorMessage(`Failed to unload model: ${err}`)
-      return undefined
     }
   }
 
@@ -543,9 +539,7 @@ export class ServerManager {
     return new Promise((resolve) => {
       const net = require('net')
       const tester = net.createServer()
-      tester.once('error', () => {
-        resolve(true)
-      })
+      tester.once('error', () => resolve(true))
       tester.once('listening', () => {
         tester.close()
         resolve(false)
