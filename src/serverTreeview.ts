@@ -23,6 +23,7 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
 
   private client: LemonadeClient
   private standaloneServer: ServerInstance | null = null
+  private customServer: ServerInstance | null = null
   private lemonServer: ServerInstance | null = null
 
   constructor(private serverManager: ServerManager, private binaryManager: BinaryManager) {
@@ -41,47 +42,51 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
   /** Get children of the given element (or root if undefined). */
   async getChildren(element?: TreeItem): Promise<TreeItem[]> {
     if (element) return this.getChildrenForElement(element)
-
     // Root level - fetch fresh data
-    await this.fetchServerData()
-
     const items: TreeItem[] = []
 
-    // Auto-detect which server to show: prefer standalone if running
+    await this.fetchServerData()
+
+    // Determine which server to display as the active one.
+    // Prefer the explicitly selected server; otherwise auto-pick running → starting → default (embedded).
     let displayServer: ServerInstance | null = null
     let displayName = ''
     let displayUrl = ''
 
-    // Check if we should show a switch prompt
-    const showSwitchPrompt = this.standaloneServer?.status === ServerStatus.RUNNING
-      && this.serverManager.isEmbeddedSelected
-      && this.lemonServer?.status === ServerStatus.RUNNING
+    const candidates: Array<{ server: ServerInstance | null, name: string }> = [
+      { server: this.standaloneServer, name: 'Standalone Lemonade' },
+      { server: this.customServer, name: 'Custom Server' },
+      { server: this.lemonServer, name: 'lemon (Embedded)' }
+    ]
 
-    if (this.standaloneServer?.status === ServerStatus.RUNNING) {
-      // Show standalone server if it's running
-      displayServer = this.standaloneServer
-      displayName = 'Standalone Lemonade'
-      displayUrl = this.standaloneServer.url
-    } else if (this.lemonServer?.status === ServerStatus.RUNNING) {
-      // Fall back to embedded server if running
-      displayServer = this.lemonServer
-      displayName = 'lemon (Embedded)'
-      displayUrl = this.lemonServer.url
-    } else if (this.standaloneServer?.status === ServerStatus.STARTING) {
-      // Show standalone if it's starting
-      displayServer = this.standaloneServer
-      displayName = 'Standalone Lemonade'
-      displayUrl = this.standaloneServer.url
-    } else if (this.lemonServer?.status === ServerStatus.STARTING) {
-      // Show embedded if it's starting
-      displayServer = this.lemonServer
-      displayName = 'lemon (Embedded)'
-      displayUrl = this.lemonServer.url
+    // 1. Respect an explicit selection (by matching the selected server name).
+    const selectedName = this.serverManager.selectedServerName
+    const selectedMatch = candidates.find((c) => c.server && c.name === selectedName)
+    if (selectedMatch?.server) {
+      displayServer = selectedMatch.server
+      displayName = selectedMatch.name
+      displayUrl = selectedMatch.server.url
     } else {
-      // No server running, show embedded (stopped) by default
-      displayServer = this.lemonServer
-      displayName = 'lemon (Embedded)'
-      displayUrl = this.lemonServer?.url || `http://localhost:8000`
+      // 2. Auto-pick the first running server.
+      const running = candidates.find((c) => c.server?.status === ServerStatus.RUNNING)
+      if (running?.server) {
+        displayServer = running.server
+        displayName = running.name
+        displayUrl = running.server.url
+      } else {
+        // 3. Any server that is starting.
+        const starting = candidates.find((c) => c.server?.status === ServerStatus.STARTING)
+        if (starting?.server) {
+          displayServer = starting.server
+          displayName = starting.name
+          displayUrl = starting.server.url
+        } else {
+          // 4. Default to embedded (stopped).
+          displayServer = this.lemonServer
+          displayName = 'lemon (Embedded)'
+          displayUrl = this.lemonServer?.url || `http://localhost:8000`
+        }
+      }
     }
 
     // Show single active server
@@ -205,10 +210,7 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
     const server = this.findServerByTooltip(element.tooltip)
     if (!server?.models) return []
 
-    const loadedIds = new Set(
-      server.health?.all_models_loaded.map((m) => m.model_name) ?? []
-    )
-
+    const loadedIds = new Set(server.health?.all_models_loaded.map((m) => m.model_name) ?? [])
     return server.models.map((model) => {
       const isLoaded = loadedIds.has(model.id)
       const item = new TreeItem(model.id, None)
@@ -228,6 +230,7 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
   private findServerByTooltip(tooltip: vscode.TreeItem['tooltip']): ServerInstance | null {
     const id = typeof tooltip === 'string' ? tooltip : ''
     if (this.standaloneServer?.id === id) return this.standaloneServer
+    if (this.customServer?.id === id) return this.customServer
     if (this.lemonServer?.id === id) return this.lemonServer
     return null
   }
@@ -263,12 +266,42 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
       }
     }
 
-    // Check lemon server
+    // Check custom server (lemon.customServerUrl)
+    const customUrl = config.get<string>('customServerUrl', '')
+    if (customUrl) {
+      const customClient = new LemonadeClient(0)
+      customClient.setBaseUrl(customUrl)
+      try {
+        const health = await customClient.getHealth()
+        const models = await customClient.listModels()
+        this.customServer = {
+          id: 'custom',
+          name: 'Custom Server',
+          url: customUrl,
+          isOwn: false,
+          status: ServerStatus.RUNNING,
+          health,
+          models,
+          maxLoadedModels: health.all_models_loaded.length
+        }
+      } catch {
+        this.customServer = {
+          id: 'custom',
+          name: 'Custom Server',
+          url: customUrl,
+          isOwn: false,
+          status: ServerStatus.STOPPED
+        }
+      }
+    } else {
+      this.customServer = null
+    }
+
+    // Check lemond server
     if (this.serverManager.status === ServerStatus.RUNNING) {
       try {
         const health = await this.client.getHealth()
         const models = await this.client.listModels()
-        const config = vscode.workspace.getConfiguration('lemon')
         let maxLoadedModels = config.get<number>('maxLoadedModels', 1)
 
         // If the server reports its max_loaded_models, keep the extension config in sync
@@ -303,7 +336,6 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
         }
       }
     } else {
-      const config = vscode.workspace.getConfiguration('lemon')
       const maxLoadedModels = config.get<number>('maxLoadedModels', 1)
       this.lemonServer = {
         id: 'lemon',

@@ -31,7 +31,12 @@ export class ChatParticipant {
       if (status !== ServerStatus.RUNNING) return
       this.updateClientForSelectedServer()
       this.selectedModel = undefined
+    })
 
+    // Update the client whenever the selected chat server changes
+    this.serverManager.onServerSelectionChange(() => {
+      this.updateClientForSelectedServer()
+      this.selectedModel = undefined
     })
   }
 

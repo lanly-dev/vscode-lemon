@@ -86,6 +86,10 @@
         "title": "Lemon: Switch to Standalone Server"
       },
       {
+        "command": "lemon.selectServer",
+        "title": "Lemon: Select Server"
+      },
+      {
         "command": "lemon.setMaxLoadedModels",
         "title": "Lemon: Set Max Loaded Models"
       }
@@ -158,8 +162,18 @@
         },
         "lemon.customServerUrl": {
           "type": "string",
-          "default": "http://localhost",
-          "description": "Custom Lemonade Server URL (e.g., http://localhost:13305)"
+          "default": "",
+          "description": "Custom Lemonade Server URL to use when lemon.serverMode is \"custom\" (e.g., http://localhost:13305)"
+        },
+        "lemon.targetServer": {
+          "type": "string",
+          "enum": [
+            "standalone",
+            "embedded",
+            "custom"
+          ],
+          "default": "standalone",
+          "description": "Which Lemonade Server to use for chat. \"standalone\" requires an existing system-installed server; \"embedded\" always runs the bundled binary; \"custom\" connects to lemon.customServerUrl."
         },
         "lemon.maxLoadedModels": {
           "type": "number",

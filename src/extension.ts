@@ -12,6 +12,8 @@ export async function activate(context: vscode.ExtensionContext) {
   const binaryManager = new BinaryManager(context)
   const serverManager = new ServerManager(context, binaryManager)
   const chatParticipant = new ChatParticipant(context, serverManager)
+  // Apply the user-configured server mode (standalone / embedded / custom)
+  serverManager.applyConfiguredServerMode()
   const provider = await createTreeView(serverManager, binaryManager)
 
   const d1 = rc('lemon.startServer', async () => {
@@ -100,16 +102,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const d11 = rc('lemon.refreshServer', () => provider.refresh())
 
-  const d12 = rc('lemon.switchToStandalone', async () => {
-    const standalonePort = serverManager.standalonePort
-    const standaloneUrl = `http://localhost:${standalonePort}`
-
-    Logger.info('Stopping embedded server to switch to standalone...')
-    await serverManager.stop()
-
-    serverManager.setSelectedServer(standaloneUrl, 'Standalone Lemonade')
-    vscode.window.showInformationMessage(`Switched to Standalone Lemonade at ${standaloneUrl}`)
-
+  const d14 = rc('lemon.selectServer', async () => {
+    await serverManager.selectServer()
     provider.refresh()
   })
 
@@ -144,7 +138,22 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   })
 
-  context.subscriptions.push(d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13)
+  context.subscriptions.push(d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14)
+
+  // Re-apply the selected server mode when the relevant settings change
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (
+        e.affectsConfiguration('lemon.serverMode')
+        || e.affectsConfiguration('lemon.customServerUrl')
+        || e.affectsConfiguration('lemon.serverPort')
+        || e.affectsConfiguration('lemon.embeddedPort')
+      ) {
+        serverManager.applyConfiguredServerMode()
+        provider.refresh()
+      }
+    })
+  )
 
   // Check for updates in the background
   binaryManager.checkForUpdates().catch((err: unknown) => {

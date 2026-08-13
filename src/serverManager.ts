@@ -25,6 +25,7 @@ export class ServerManager {
   private process: ChildProcess | null = null
   private statusBarItem: vscode.StatusBarItem
   private statusChangeCallbacks: Array<(status: ServerStatus) => void> = []
+  private selectionChangeCallbacks: Array<() => void> = []
 
   constructor(private context: vscode.ExtensionContext, private binaryManager: BinaryManager) {
     this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100)
@@ -225,12 +226,43 @@ export class ServerManager {
     return this.start()
   }
 
-  /** Set the selected server for chat. */
+  /** Set the selected server for chat and notify listeners (e.g. the chat participant). */
   setSelectedServer(url: string, name: string): void {
     this._serverUrl = url
     this._serverName = name
     Logger.info(`Selected server: ${name} (${url})`)
     this.updateStatusBar()
+    for (const callback of this.selectionChangeCallbacks) callback()
+  }
+
+  /** Register a callback invoked whenever the selected chat server changes. */
+  onServerSelectionChange(callback: () => void): void {
+    this.selectionChangeCallbacks.push(callback)
+  }
+
+  /** Apply the configured `lemon.serverMode` to the in-memory server selection. */
+  applyConfiguredServerMode(): void {
+    const config = vscode.workspace.getConfiguration('lemon')
+    const mode = config.get<'auto' | 'standalone' | 'embedded' | 'custom'>('serverMode', 'auto')
+    const standalonePort = config.get<number>('serverPort', 13305)
+    const embeddedUrl = `http://localhost:${config.get<number>('embeddedPort', 8000)}`
+
+    switch (mode) {
+      case 'standalone':
+        this.setSelectedServer(`http://localhost:${standalonePort}`, 'Standalone Lemonade')
+        break
+      case 'custom': {
+        const url = config.get<string>('customServerUrl', '')
+        if (url) this.setSelectedServer(url, 'Custom Server')
+        break
+      }
+      case 'embedded':
+        this.setSelectedServer(embeddedUrl, 'lemon (Embedded)')
+        break
+      default:
+        // Fall through to the default embedded selection.
+        break
+    }
   }
 
   /** Show a quick pick to choose which server to use for chat. */
@@ -310,6 +342,7 @@ export class ServerManager {
 
       // Save to config and select
       await config.update('customServerUrl', url, vscode.ConfigurationTarget.Global)
+      await config.update('serverMode', 'custom', vscode.ConfigurationTarget.Global)
       this.setSelectedServer(url, 'Custom Server')
       vscode.window.showInformationMessage(`Connected to custom server: ${url}`)
       return
@@ -317,6 +350,7 @@ export class ServerManager {
 
     // Select the chosen server
     if (selected.label.includes('Standalone')) {
+      await config.update('serverMode', 'standalone', vscode.ConfigurationTarget.Global)
       this.setSelectedServer(standaloneUrl, 'Standalone Lemonade')
       vscode.window.showInformationMessage(`Using Standalone Lemonade at ${standaloneUrl}`)
     } else if (selected.label.includes('lemon')) {
@@ -334,13 +368,16 @@ export class ServerManager {
             return
           }
         } else {
+          await config.update('serverMode', 'embedded', vscode.ConfigurationTarget.Global)
           this.setSelectedServer(embeddedUrl, 'lemon (Embedded)')
           return
         }
       }
+      await config.update('serverMode', 'embedded', vscode.ConfigurationTarget.Global)
       this.setSelectedServer(embeddedUrl, 'lemon (Embedded)')
       vscode.window.showInformationMessage(`Using lemon (Embedded) at ${embeddedUrl}`)
     } else if (selected.label.includes('Custom Server')) {
+      await config.update('serverMode', 'custom', vscode.ConfigurationTarget.Global)
       this.setSelectedServer(defaultUrl, 'Custom Server')
       vscode.window.showInformationMessage(`Using custom server: ${defaultUrl}`)
     }
@@ -383,6 +420,37 @@ export class ServerManager {
 
   /** Start the Lemonade Server. */
   async start(): Promise<boolean> {
+    const config = vscode.workspace.getConfiguration('lemon')
+    const serverMode = config.get<'auto' | 'standalone' | 'embedded' | 'custom'>('serverMode', 'auto')
+
+    // Custom mode: connect to a user-configured URL instead of launching a process.
+    if (serverMode === 'custom') {
+      const customUrl = config.get<string>('customServerUrl', '')
+      if (!customUrl) {
+        vscode.window.showErrorMessage('No custom Lemonade Server URL configured. Set lemon.customServerUrl in settings first.')
+        this.setStatus(ServerStatus.ERROR)
+        return false
+      }
+      const customClient = new LemonadeClient(0)
+      customClient.setBaseUrl(customUrl)
+      try {
+        const healthy = await customClient.checkHealth()
+        if (!healthy) throw new Error('health check failed')
+        this.client = customClient
+        this._usingExistingServer = true
+        this.setSelectedServer(customUrl, 'Custom Server')
+        this.setStatus(ServerStatus.RUNNING)
+        vscode.window.showInformationMessage(`Connected to custom Lemonade Server at ${customUrl}`)
+        return true
+      } catch {
+        this.setStatus(ServerStatus.ERROR)
+        vscode.window.showErrorMessage(
+          `Failed to connect to custom Lemonade Server at ${customUrl}. Check the URL in lemon.customServerUrl and that the server is running.`
+        )
+        return false
+      }
+    }
+
     if (this._status === ServerStatus.RUNNING || this._status === ServerStatus.STARTING) {
       Logger.warn('Server is already running or starting')
       vscode.window.showInformationMessage('Lemonade Server is already running')
@@ -390,28 +458,52 @@ export class ServerManager {
     }
 
     // Read ports from config
-    const config = vscode.workspace.getConfiguration('lemon')
     this._standalonePort = config.get<number>('serverPort', 13305)
     this._embedPort = config.get<number>('embeddedPort', 8000)
 
-    // Check if standalone Lemonade is already running
-    Logger.info('Checking for standalone Lemonade Server...')
-    const standaloneClient = new LemonadeClient(this._standalonePort)
-    const standaloneHealthy = await standaloneClient.checkHealth()
-
-    if (standaloneHealthy) {
-      // Connect to existing standalone server
-      Logger.info('Connecting to existing standalone Lemonade Server')
-      this._usingExistingServer = true
-      this._serverUrl = `http://localhost:${this._standalonePort}`
-      this._serverName = 'Standalone Lemonade'
-      this.client = standaloneClient
-      this.setStatus(ServerStatus.RUNNING)
-      vscode.window.showInformationMessage(`Connected to Lemonade Server at http://localhost:${this._standalonePort}`)
-      return true
+    // Standalone mode: require an existing running standalone server.
+    if (serverMode === 'standalone') {
+      Logger.info('Connecting to standalone Lemonade Server...')
+      const standaloneClient = new LemonadeClient(this._standalonePort)
+      const standaloneHealthy = await standaloneClient.checkHealth()
+      if (standaloneHealthy) {
+        this._usingExistingServer = true
+        this.client = standaloneClient
+        this.setSelectedServer(`http://localhost:${this._standalonePort}`, 'Standalone Lemonade')
+        this.setStatus(ServerStatus.RUNNING)
+        vscode.window.showInformationMessage(`Connected to Standalone Lemonade at http://localhost:${this._standalonePort}`)
+        return true
+      }
+      this.setStatus(ServerStatus.ERROR)
+      vscode.window.showErrorMessage(
+        'Standalone Lemonade Server is not running. Start it, or set lemon.serverMode to "embedded" or "custom".'
+      )
+      return false
     }
 
-    // No standalone server found, start embedded lemon
+    // Embedded mode: always start the embedded binary (do not auto-connect to standalone).
+    if (serverMode === 'embedded') {
+      this.setSelectedServer(`http://localhost:${this._embedPort}`, 'lemon (Embedded)')
+    }
+
+    // Auto mode (default): prefer a running standalone server, otherwise start embedded.
+    if (serverMode === 'auto') {
+      Logger.info('Checking for standalone Lemonade Server...')
+      const standaloneClient = new LemonadeClient(this._standalonePort)
+      const standaloneHealthy = await standaloneClient.checkHealth()
+      if (standaloneHealthy) {
+        // Connect to existing standalone server
+        Logger.info('Connecting to existing standalone Lemonade Server')
+        this._usingExistingServer = true
+        this.setSelectedServer(`http://localhost:${this._standalonePort}`, 'Standalone Lemonade')
+        this.client = standaloneClient
+        this.setStatus(ServerStatus.RUNNING)
+        vscode.window.showInformationMessage(`Connected to Lemonade Server at http://localhost:${this._standalonePort}`)
+        return true
+      }
+    }
+
+    // No standalone server found (or embedded mode forced), start embedded lemon
     this.client = new LemonadeClient(this._embedPort)
 
     // Check if the embedded port is in use by something else
@@ -495,6 +587,7 @@ export class ServerManager {
     // Wait for the server to be ready
     const ready = await this.waitForReady()
     if (ready) {
+      this.setSelectedServer(`http://localhost:${this._embedPort}`, 'lemon (Embedded)')
       this.setStatus(ServerStatus.RUNNING)
       Logger.info('Lemonade Server is ready')
       vscode.window.showInformationMessage('Lemonade Server started successfully')
