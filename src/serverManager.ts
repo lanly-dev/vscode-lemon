@@ -12,14 +12,16 @@ import { ServerStatus } from './interfaces'
  * Manages the Lemonade Server process lifecycle.
  */
 export class ServerManager {
-  private _port: number = 8000
+  private _embedPort: number = 8000
   private _standalonePort: number = 13305
+
+  private _modelClient?: LemonadeClient
   private _serverName: string = ''
   private _serverUrl: string = ''
   private _status: ServerStatus = ServerStatus.STOPPED
   private _usingExistingServer = false
+
   private client: LemonadeClient
-  private _modelClient?: LemonadeClient
   private process: ChildProcess | null = null
   private statusBarItem: vscode.StatusBarItem
   private statusChangeCallbacks: Array<(status: ServerStatus) => void> = []
@@ -34,7 +36,7 @@ export class ServerManager {
     )
     this.statusBarItem.command = 'lemon.startServer'
     this.context.subscriptions.push(this.statusBarItem)
-    this.client = new LemonadeClient(this.port)
+    this.client = new LemonadeClient(this._embedPort)
     this.updateStatusBar()
   }
 
@@ -44,8 +46,8 @@ export class ServerManager {
   }
 
   /** Get the embedded server port. */
-  get port(): number {
-    return this._port
+  get embeddedPort(): number {
+    return this._embedPort
   }
 
   /** Get the standalone server port. */
@@ -55,7 +57,7 @@ export class ServerManager {
 
   /** Get the server URL. */
   get url(): string {
-    return `http://localhost:${this._port}`
+    return `http://localhost:${this._embedPort}`
   }
 
   /** Get whether we're using an existing server. */
@@ -405,7 +407,7 @@ export class ServerManager {
     // Read ports from config
     const config = vscode.workspace.getConfiguration('lemon')
     this._standalonePort = config.get<number>('serverPort', 13305)
-    this._port = config.get<number>('embeddedPort', 8000)
+    this._embedPort = config.get<number>('embeddedPort', 8000)
 
     // Check if standalone Lemonade is already running
     Logger.info('Checking for standalone Lemonade Server...')
@@ -425,13 +427,13 @@ export class ServerManager {
     }
 
     // No standalone server found, start embedded lemon
-    this.client = new LemonadeClient(this._port)
+    this.client = new LemonadeClient(this._embedPort)
 
     // Check if the embedded port is in use by something else
-    const portInUse = await this.isPortInUse(this._port)
+    const portInUse = await this.isPortInUse(this._embedPort)
     if (portInUse) {
       vscode.window.showErrorMessage(
-        `Port ${this._port} is already in use by another application. `
+        `Port ${this._embedPort} is already in use by another application. `
         + 'Please change the port in settings (lemon.embeddedPort).'
       )
       this.setStatus(ServerStatus.ERROR)
@@ -447,7 +449,7 @@ export class ServerManager {
 
     this._usingExistingServer = false
     this.setStatus(ServerStatus.STARTING)
-    Logger.info(`Starting embedded Lemonade Server on port ${this._port}...`)
+    Logger.info(`Starting embedded Lemonade Server on port ${this._embedPort}...`)
 
     const binaryPath = this.binaryManager.binaryPath
     const workingDir = this.binaryManager.binaryDir
@@ -459,18 +461,18 @@ export class ServerManager {
       const config = vscode.workspace.getConfiguration('lemon')
       const maxLoadedModels = config.get<number>('maxLoadedModels', 1)
       const configData = {
-        port: this._port,
+        port: this._embedPort,
         max_loaded_models: maxLoadedModels
       }
       fs.writeFileSync(configPath, JSON.stringify(configData, null, 2), 'utf8')
-      Logger.info(`Wrote config.json with port ${this._port} and max_loaded_models ${maxLoadedModels}`)
+      Logger.info(`Wrote config.json with port ${this._embedPort} and max_loaded_models ${maxLoadedModels}`)
     } catch (err) {
       Logger.error('Failed to write config.json', err)
     }
 
     try {
       // lemon [cache_dir] [--port PORT] [--host HOST]
-      this.process = spawn(binaryPath, [workingDir, '--port', String(this._port)], {
+      this.process = spawn(binaryPath, [workingDir, '--port', String(this._embedPort)], {
         cwd: workingDir,
         env: { ...process.env },
         shell: false

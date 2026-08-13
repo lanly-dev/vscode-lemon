@@ -17,7 +17,7 @@ export class ChatParticipant {
     private context: vscode.ExtensionContext,
     private serverManager: ServerManager
   ) {
-    this.client = new LemonadeClient(serverManager.port)
+    this.client = new LemonadeClient(serverManager.embeddedPort)
 
     // Create the chat participant
     this.participant = vscode.chat.createChatParticipant(

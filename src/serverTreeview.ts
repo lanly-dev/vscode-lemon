@@ -36,7 +36,7 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
     private serverManager: ServerManager,
     private binaryManager: BinaryManager
   ) {
-    this.client = new LemonadeClient(serverManager.port)
+    this.client = new LemonadeClient(serverManager.embeddedPort)
 
     serverManager.onStatusChange(() =>  this.refresh())
   }
