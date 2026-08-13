@@ -38,7 +38,7 @@ export default [{
     'quote-props': ['error', 'as-needed'],
     curly: ['error', 'multi-or-nest'],
     eqeqeq: 'error',
-    indent: ['error', 2],
+    indent: ['error', 2, { SwitchCase: 1 }],
     quotes: ['error', 'single', { allowTemplateLiterals: true }],
     semi: ['error', 'never']
   }

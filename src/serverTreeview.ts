@@ -1,16 +1,21 @@
 import * as vscode from 'vscode'
-import { Logger } from './logger'
-import { LemonadeClient } from './lemonadeClient'
-import { ServerManager } from './serverManager'
+
+import { TreeDataProvider, TreeItem, TreeItemCollapsibleState } from 'vscode'
+const { None, Expanded } = TreeItemCollapsibleState
+
 import { BinaryManager } from './binaryManager'
+import { LemonadeClient } from './lemonadeClient'
+import { Logger } from './logger'
+import { ServerManager } from './serverManager'
 import { ServerStatus } from './interfaces'
-import type { HealthResponse, LemonadeModel, ServerInstance } from './interfaces'
+
+import type { ServerInstance } from './interfaces'
 
 /**
  * Tree data provider for the Servers view.
  * Shows both the standalone Lemonade app and the lemon app in a single tree.
  */
-export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
+export class ServerViewProvider implements TreeDataProvider<TreeItem> {
   private _onDidChangeTreeData = new vscode.EventEmitter<void>()
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event
 
@@ -18,13 +23,9 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
   private standaloneServer: ServerInstance | null = null
   private lemonServer: ServerInstance | null = null
 
-  constructor(
-    private serverManager: ServerManager,
-    private binaryManager: BinaryManager
-  ) {
+  constructor(private serverManager: ServerManager, private binaryManager: BinaryManager) {
     this.client = new LemonadeClient(serverManager.embeddedPort)
-
-    serverManager.onStatusChange(() =>  this.refresh())
+    serverManager.onStatusChange(() => this.refresh())
   }
 
   /** Refresh the tree view. */
@@ -38,14 +39,13 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
   }
 
   /** Get children of the given element (or root if undefined). */
-  async getChildren(element?: vscode.TreeItem): Promise<vscode.TreeItem[]> {
-    if (element)
-      return this.getChildrenForElement(element)
+  async getChildren(element?: TreeItem): Promise<TreeItem[]> {
+    if (element) return this.getChildrenForElement(element)
 
     // Root level - fetch fresh data
     await this.fetchServerData()
 
-    const items: vscode.TreeItem[] = []
+    const items: TreeItem[] = []
 
     // Auto-detect which server to show: prefer standalone if running
     let displayServer: ServerInstance | null = null
@@ -86,10 +86,7 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
 
     // Add switch prompt as first item if standalone is running and embedded is selected
     if (showSwitchPrompt && this.standaloneServer?.status === ServerStatus.RUNNING) {
-      const switchItem = new vscode.TreeItem(
-        '$(arrow-right) Switch to Standalone Lemonade',
-        vscode.TreeItemCollapsibleState.None
-      )
+      const switchItem = new TreeItem('$(arrow-right) Switch to Standalone Lemonade', None)
       switchItem.iconPath = new vscode.ThemeIcon('server')
       switchItem.contextValue = 'LEMOND_SWITCH_TO_STANDALONE'
       switchItem.tooltip = 'Click to switch from embedded to standalone Lemonade Server'
@@ -102,10 +99,7 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
     }
 
     // Show single active server
-    const serverHeader = new vscode.TreeItem(
-      displayName,
-      vscode.TreeItemCollapsibleState.Expanded
-    )
+    const serverHeader = new TreeItem(displayName, Expanded)
     serverHeader.iconPath = new vscode.ThemeIcon('server')
     serverHeader.contextValue = 'LEMOND_SERVER_HEADER'
     serverHeader.tooltip = `Active server: ${displayName}\nURL: ${displayUrl}`
@@ -120,7 +114,7 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
   private _activeServer: ServerInstance | null = null
 
   /** Get children for a specific element. */
-  private getChildrenForElement(element: vscode.TreeItem): vscode.TreeItem[] {
+  private getChildrenForElement(element: TreeItem): TreeItem[] {
     if (element.contextValue === 'LEMOND_SERVER_HEADER') return this.getServerChildren(this._activeServer)
     if (element.contextValue === 'LEMOND_LOADED_HEADER') return this.getLoadedModelChildren(element)
     if (element.contextValue === 'LEMOND_MODELS_HEADER') return this.getModelChildren(element)
@@ -128,17 +122,14 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
   }
 
   /** Get children for a server instance. */
-  private getServerChildren(server: ServerInstance | null): vscode.TreeItem[] {
+  private getServerChildren(server: ServerInstance | null): TreeItem[] {
     if (!server) return []
 
     const items: vscode.TreeItem[] = []
 
     // Status indicator
     const statusText = this.getStatusText(server.status)
-    const statusItem = new vscode.TreeItem(
-      `Status: ${statusText}`,
-      vscode.TreeItemCollapsibleState.None
-    )
+    const statusItem = new TreeItem(`Status: ${statusText}`, None)
     statusItem.iconPath = new vscode.ThemeIcon(
       this.getStatusIcon(server.status),
       new vscode.ThemeColor(this.getStatusColor(server.status))
@@ -147,10 +138,7 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
     items.push(statusItem)
 
     // Server URL
-    const urlItem = new vscode.TreeItem(
-      server.url,
-      vscode.TreeItemCollapsibleState.None
-    )
+    const urlItem = new TreeItem(server.url, None)
     urlItem.iconPath = new vscode.ThemeIcon('link')
     urlItem.tooltip = `Server URL: ${server.url}`
     urlItem.contextValue = 'LEMOND_SERVER_URL'
@@ -158,10 +146,7 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
 
     // Version
     if (server.version) {
-      const versionItem = new vscode.TreeItem(
-        `Version: v${server.version}`,
-        vscode.TreeItemCollapsibleState.None
-      )
+      const versionItem = new TreeItem(`Version: v${server.version}`, None)
       versionItem.iconPath = new vscode.ThemeIcon('versions')
       versionItem.tooltip = 'Lemonade Server binary version'
       items.push(versionItem)
@@ -172,10 +157,7 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
       const maxModelsText = server.maxLoadedModels === -1
         ? 'Unlimited'
         : String(server.maxLoadedModels)
-      const maxModelsItem = new vscode.TreeItem(
-        `Max Loaded Models: ${maxModelsText}`,
-        vscode.TreeItemCollapsibleState.None
-      )
+      const maxModelsItem = new TreeItem(`Max Loaded Models: ${maxModelsText}`, None)
       maxModelsItem.iconPath = new vscode.ThemeIcon('symbol-number')
       const configLabel = server.isOwn ? ' (configured in settings)' : ''
       maxModelsItem.tooltip = `Maximum models that can be loaded simultaneously${configLabel}`
@@ -184,20 +166,14 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
 
     // Error message if any
     if (server.error) {
-      const errorItem = new vscode.TreeItem(
-        `Error: ${server.error}`,
-        vscode.TreeItemCollapsibleState.None
-      )
+      const errorItem = new TreeItem(`Error: ${server.error}`, None)
       errorItem.iconPath = new vscode.ThemeIcon('error', new vscode.ThemeColor('charts.red'))
       items.push(errorItem)
     }
 
     // Loaded models section
     if (server.health && server.health.all_models_loaded.length > 0) {
-      const loadedHeader = new vscode.TreeItem(
-        `Loaded Models (${server.health.all_models_loaded.length})`,
-        vscode.TreeItemCollapsibleState.Expanded
-      )
+      const loadedHeader = new TreeItem(`Loaded Models (${server.health.all_models_loaded.length})`, Expanded)
       loadedHeader.iconPath = new vscode.ThemeIcon('zap')
       loadedHeader.contextValue = 'LEMOND_LOADED_HEADER'
       loadedHeader.tooltip = server.id
@@ -206,19 +182,13 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
 
     // Available models section
     if (server.models && server.models.length > 0) {
-      const modelsHeader = new vscode.TreeItem(
-        `Available Models (${server.models.length})`,
-        vscode.TreeItemCollapsibleState.Expanded
-      )
+      const modelsHeader = new TreeItem(`Available Models (${server.models.length})`, Expanded)
       modelsHeader.iconPath = new vscode.ThemeIcon('list-tree')
       modelsHeader.contextValue = 'LEMOND_MODELS_HEADER'
       modelsHeader.tooltip = server.id
       items.push(modelsHeader)
     } else if (server.status === ServerStatus.RUNNING) {
-      const noModels = new vscode.TreeItem(
-        'No models available',
-        vscode.TreeItemCollapsibleState.None
-      )
+      const noModels = new TreeItem('No models available', None)
       noModels.iconPath = new vscode.ThemeIcon('circle-filled')
       noModels.tooltip = 'Pull a model using the "Lemonade: Pull Model" command'
       items.push(noModels)
@@ -229,14 +199,10 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
   /** Get loaded model children. */
   private getLoadedModelChildren(element: vscode.TreeItem): vscode.TreeItem[] {
     const server = this.findServerByTooltip(element.tooltip)
-    if (!server?.health)
-      return []
+    if (!server?.health) return []
 
     return server.health.all_models_loaded.map((model) => {
-      const item = new vscode.TreeItem(
-        model.model_name,
-        vscode.TreeItemCollapsibleState.None
-      )
+      const item = new TreeItem(model.model_name, None)
       item.iconPath = new vscode.ThemeIcon('pass-filled', new vscode.ThemeColor('charts.green'))
       item.tooltip = `Model: ${model.model_name}\nBusy: ${model.is_busy}\nStreaming: ${model.is_streaming}`
       item.contextValue = 'LEMOND_LOADED_MODEL'
@@ -256,10 +222,7 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
 
     return server.models.map((model) => {
       const isLoaded = loadedIds.has(model.id)
-      const item = new vscode.TreeItem(
-        model.id,
-        vscode.TreeItemCollapsibleState.None
-      )
+      const item = new TreeItem(model.id, None)
       if (isLoaded) {
         item.iconPath = new vscode.ThemeIcon('pass-filled', new vscode.ThemeColor('charts.green'))
         item.contextValue = 'LEMOND_MODEL_LOADED'
@@ -285,7 +248,6 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
     // Check for standalone Lemonade server on the standalone port
     const config = vscode.workspace.getConfiguration('lemon')
     const standalonePort = config.get<number>('serverPort', 13305)
-    const embeddedPort = config.get<number>('embeddedPort', 8000)
     const standaloneClient = new LemonadeClient(standalonePort)
 
     // Check standalone server
@@ -369,48 +331,48 @@ export class ServerViewProvider implements vscode.TreeDataProvider<vscode.TreeIt
   /** Get the status text for a server status. */
   private getStatusText(status: ServerInstance['status']): string {
     switch (status) {
-    case ServerStatus.RUNNING:
-      return 'Running'
-    case ServerStatus.STARTING:
-      return 'Starting...'
-    case ServerStatus.STOPPED:
-      return 'Stopped'
-    case ServerStatus.ERROR:
-      return 'Error'
-    default:
-      return 'Unknown'
+      case ServerStatus.RUNNING:
+        return 'Running'
+      case ServerStatus.STARTING:
+        return 'Starting...'
+      case ServerStatus.STOPPED:
+        return 'Stopped'
+      case ServerStatus.ERROR:
+        return 'Error'
+      default:
+        return 'Unknown'
     }
   }
 
   /** Get the status icon for a server status. */
   private getStatusIcon(status: ServerInstance['status']): string {
     switch (status) {
-    case ServerStatus.RUNNING:
-      return 'debug-start'
-    case ServerStatus.STARTING:
-      return 'loading~spin'
-    case ServerStatus.STOPPED:
-      return 'debug-stop'
-    case ServerStatus.ERROR:
-      return 'error'
-    default:
-      return 'question'
+      case ServerStatus.RUNNING:
+        return 'debug-start'
+      case ServerStatus.STARTING:
+        return 'loading~spin'
+      case ServerStatus.STOPPED:
+        return 'debug-stop'
+      case ServerStatus.ERROR:
+        return 'error'
+      default:
+        return 'question'
     }
   }
 
   /** Get the status color for a server status. */
   private getStatusColor(status: ServerInstance['status']): string {
     switch (status) {
-    case ServerStatus.RUNNING:
-      return 'charts.green'
-    case ServerStatus.STARTING:
-      return 'charts.yellow'
-    case ServerStatus.STOPPED:
-      return 'charts.gray'
-    case ServerStatus.ERROR:
-      return 'charts.red'
-    default:
-      return 'charts.gray'
+      case ServerStatus.RUNNING:
+        return 'charts.green'
+      case ServerStatus.STARTING:
+        return 'charts.yellow'
+      case ServerStatus.STOPPED:
+        return 'charts.gray'
+      case ServerStatus.ERROR:
+        return 'charts.red'
+      default:
+        return 'charts.gray'
     }
   }
 }
