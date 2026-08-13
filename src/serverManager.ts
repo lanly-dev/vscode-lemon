@@ -3,9 +3,9 @@ import * as fs from 'fs'
 import * as path from 'path'
 import * as vscode from 'vscode'
 
-import { Logger } from './logger'
 import { BinaryManager } from './binaryManager'
 import { LemonadeClient } from './lemonadeClient'
+import { Logger } from './logger'
 import { ServerStatus } from './interfaces'
 
 /**
@@ -26,14 +26,8 @@ export class ServerManager {
   private statusBarItem: vscode.StatusBarItem
   private statusChangeCallbacks: Array<(status: ServerStatus) => void> = []
 
-  constructor(
-    private context: vscode.ExtensionContext,
-    private binaryManager: BinaryManager
-  ) {
-    this.statusBarItem = vscode.window.createStatusBarItem(
-      vscode.StatusBarAlignment.Right,
-      100
-    )
+  constructor(private context: vscode.ExtensionContext, private binaryManager: BinaryManager) {
+    this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100)
     this.statusBarItem.command = 'lemon.startServer'
     this.context.subscriptions.push(this.statusBarItem)
     this.client = new LemonadeClient(this._embedPort)
@@ -58,11 +52,6 @@ export class ServerManager {
   /** Get the server URL. */
   get url(): string {
     return `http://localhost:${this._embedPort}`
-  }
-
-  /** Get whether we're using an existing server. */
-  get usingExistingServer(): boolean {
-    return this._usingExistingServer
   }
 
   /** Get the currently selected server URL for chat. */
@@ -617,7 +606,7 @@ export class ServerManager {
 
   /** Check if the server is running and healthy. */
   async isHealthy(): Promise<boolean> {
-    if (this._status !== ServerStatus.RUNNING)  return false
+    if (this._status !== ServerStatus.RUNNING) return false
     try {
       return await this.client.checkHealth()
     } catch {

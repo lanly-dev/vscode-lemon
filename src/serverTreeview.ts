@@ -19,6 +19,8 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
   private _onDidChangeTreeData = new vscode.EventEmitter<void>()
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event
 
+  private _activeServer: ServerInstance | null = null
+
   private client: LemonadeClient
   private standaloneServer: ServerInstance | null = null
   private lemonServer: ServerInstance | null = null
@@ -28,12 +30,10 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
     serverManager.onStatusChange(() => this.refresh())
   }
 
-  /** Refresh the tree view. */
   refresh(): void {
     this._onDidChangeTreeData.fire()
   }
 
-  /** Get the tree item for the given element. */
   getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
     return element
   }
@@ -111,8 +111,6 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
     return items
   }
 
-  private _activeServer: ServerInstance | null = null
-
   /** Get children for a specific element. */
   private getChildrenForElement(element: TreeItem): TreeItem[] {
     if (element.contextValue === 'LEMOND_SERVER_HEADER') return this.getServerChildren(this._activeServer)
@@ -121,7 +119,6 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
     return []
   }
 
-  /** Get children for a server instance. */
   private getServerChildren(server: ServerInstance | null): TreeItem[] {
     if (!server) return []
 
@@ -196,7 +193,6 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
     return items
   }
 
-  /** Get loaded model children. */
   private getLoadedModelChildren(element: vscode.TreeItem): vscode.TreeItem[] {
     const server = this.findServerByTooltip(element.tooltip)
     if (!server?.health) return []
@@ -211,7 +207,6 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
     })
   }
 
-  /** Get available model children. */
   private getModelChildren(element: vscode.TreeItem): vscode.TreeItem[] {
     const server = this.findServerByTooltip(element.tooltip)
     if (!server?.models) return []
@@ -328,7 +323,6 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
     }
   }
 
-  /** Get the status text for a server status. */
   private getStatusText(status: ServerInstance['status']): string {
     switch (status) {
       case ServerStatus.RUNNING:
@@ -344,7 +338,6 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
     }
   }
 
-  /** Get the status icon for a server status. */
   private getStatusIcon(status: ServerInstance['status']): string {
     switch (status) {
       case ServerStatus.RUNNING:
@@ -360,7 +353,6 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
     }
   }
 
-  /** Get the status color for a server status. */
   private getStatusColor(status: ServerInstance['status']): string {
     switch (status) {
       case ServerStatus.RUNNING:
