@@ -84,20 +84,6 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
       displayUrl = this.lemonServer?.url || `http://localhost:8000`
     }
 
-    // Add switch prompt as first item if standalone is running and embedded is selected
-    if (showSwitchPrompt && this.standaloneServer?.status === ServerStatus.RUNNING) {
-      const switchItem = new TreeItem('$(arrow-right) Switch to Standalone Lemonade', None)
-      switchItem.iconPath = new vscode.ThemeIcon('server')
-      switchItem.contextValue = 'LEMOND_SWITCH_TO_STANDALONE'
-      switchItem.tooltip = 'Click to switch from embedded to standalone Lemonade Server'
-      switchItem.command = {
-        command: 'lemon.switchToStandalone',
-        title: 'Switch to Standalone',
-        arguments: []
-      }
-      items.push(switchItem)
-    }
-
     // Show single active server
     const serverHeader = new TreeItem(displayName, Expanded)
     serverHeader.iconPath = new vscode.ThemeIcon('server')
@@ -107,6 +93,30 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
 
     // Store the active server reference for child elements
     this._activeServer = displayServer
+
+    // Loaded models section
+    const loadedModels = this._activeServer?.health?.all_models_loaded || []
+
+    const loadedHeader = new TreeItem(`Loaded Models (${loadedModels.length})`, Expanded)
+    loadedHeader.iconPath = new vscode.ThemeIcon('zap')
+    loadedHeader.contextValue = 'LEMOND_LOADED_HEADER'
+    loadedHeader.tooltip = this._activeServer?.id
+    items.push(loadedHeader)
+
+
+    // Available models section
+    if (this._activeServer?.models && this._activeServer.models.length > 0) {
+      const modelsHeader = new TreeItem(`Available Models (${this._activeServer.models.length})`, Expanded)
+      modelsHeader.iconPath = new vscode.ThemeIcon('list-tree')
+      modelsHeader.contextValue = 'LEMOND_MODELS_HEADER'
+      modelsHeader.tooltip = this._activeServer.id
+      items.push(modelsHeader)
+    } else if (this._activeServer?.status === ServerStatus.RUNNING) {
+      const noModels = new TreeItem('No models available', None)
+      noModels.iconPath = new vscode.ThemeIcon('circle-filled')
+      noModels.tooltip = 'Pull a model using the "Lemonade: Pull Model" command'
+      items.push(noModels)
+    }
 
     return items
   }
@@ -167,37 +177,21 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
       errorItem.iconPath = new vscode.ThemeIcon('error', new vscode.ThemeColor('charts.red'))
       items.push(errorItem)
     }
-
-    // Loaded models section
-    if (server.health && server.health.all_models_loaded.length > 0) {
-      const loadedHeader = new TreeItem(`Loaded Models (${server.health.all_models_loaded.length})`, Expanded)
-      loadedHeader.iconPath = new vscode.ThemeIcon('zap')
-      loadedHeader.contextValue = 'LEMOND_LOADED_HEADER'
-      loadedHeader.tooltip = server.id
-      items.push(loadedHeader)
-    }
-
-    // Available models section
-    if (server.models && server.models.length > 0) {
-      const modelsHeader = new TreeItem(`Available Models (${server.models.length})`, Expanded)
-      modelsHeader.iconPath = new vscode.ThemeIcon('list-tree')
-      modelsHeader.contextValue = 'LEMOND_MODELS_HEADER'
-      modelsHeader.tooltip = server.id
-      items.push(modelsHeader)
-    } else if (server.status === ServerStatus.RUNNING) {
-      const noModels = new TreeItem('No models available', None)
-      noModels.iconPath = new vscode.ThemeIcon('circle-filled')
-      noModels.tooltip = 'Pull a model using the "Lemonade: Pull Model" command'
-      items.push(noModels)
-    }
     return items
   }
 
-  private getLoadedModelChildren(element: vscode.TreeItem): vscode.TreeItem[] {
+  private getLoadedModelChildren(element: vscode.TreeItem): TreeItem[] {
     const server = this.findServerByTooltip(element.tooltip)
     if (!server?.health) return []
+    const loadedModels = server.health.all_models_loaded
 
-    return server.health.all_models_loaded.map((model) => {
+    if (!loadedModels || loadedModels.length === 0) {
+      const noModelsItem = new TreeItem('No loaded models', None)
+      noModelsItem.iconPath = new vscode.ThemeIcon('circle-slash')
+      return [noModelsItem]
+    }
+
+    return loadedModels.map((model) => {
       const item = new TreeItem(model.model_name, None)
       item.iconPath = new vscode.ThemeIcon('pass-filled', new vscode.ThemeColor('charts.green'))
       item.tooltip = `Model: ${model.model_name}\nBusy: ${model.is_busy}\nStreaming: ${model.is_streaming}`

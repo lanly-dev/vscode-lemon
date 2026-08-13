@@ -124,11 +124,6 @@
           "command": "lemon.openSettings",
           "when": "view == lemon.serversView",
           "group": "navigation"
-        },
-        {
-          "command": "lemon.setMaxLoadedModels",
-          "when": "view == lemon.serversView",
-          "group": "navigation"
         }
       ],
       "view/item/context": [

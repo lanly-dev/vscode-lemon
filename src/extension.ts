@@ -50,7 +50,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const modelName = await vscode.window.showInputBox({
       title: 'Pull Model',
-      prompt: 'Enter the model name to download (e.g., Qwen3-0.6B-GGUF)',
+      prompt: 'Enter the model name to download',
       placeHolder: 'Model name'
     })
 
