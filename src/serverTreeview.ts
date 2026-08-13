@@ -4,21 +4,7 @@ import { LemonadeClient } from './lemonadeClient'
 import { ServerManager } from './serverManager'
 import { BinaryManager } from './binaryManager'
 import { ServerStatus } from './interfaces'
-import type { HealthResponse, LemonadeModel } from './interfaces'
-
-/** A server instance shown in the tree view. */
-interface ServerInstance {
-  id: string
-  name: string
-  url: string
-  isOwn: boolean
-  status: ServerStatus
-  version?: string
-  health?: HealthResponse
-  models?: LemonadeModel[]
-  error?: string
-  maxLoadedModels?: number
-}
+import type { HealthResponse, LemonadeModel, ServerInstance } from './interfaces'
 
 /**
  * Tree data provider for the Servers view.
