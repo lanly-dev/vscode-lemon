@@ -96,7 +96,6 @@ export interface ServerInstance {
   id: string
   name: string
   url: string
-  isOwn: boolean
   status: ServerStatus
   version?: string
   health?: HealthResponse

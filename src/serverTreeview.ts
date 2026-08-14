@@ -123,7 +123,6 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
       noModels.tooltip = 'Pull a model using the "Lemonade: Pull Model" command'
       items.push(noModels)
     }
-
     return items
   }
 
@@ -172,7 +171,7 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
         : String(server.maxLoadedModels)
       const maxModelsItem = new TreeItem(`Max Loaded Models: ${maxModelsText}`, None)
       maxModelsItem.iconPath = new vscode.ThemeIcon('symbol-number')
-      const configLabel = server.isOwn ? ' (configured in settings)' : ''
+      const configLabel = server.id === 'lemon' ? ' (configured in settings)' : ''
       maxModelsItem.tooltip = `Maximum models that can be loaded simultaneously${configLabel}`
       items.push(maxModelsItem)
     }
@@ -247,7 +246,6 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
     ])
   }
 
-  /** Fetch the standalone Lemonade server status. */
   private async fetchStandaloneServer(config: vscode.WorkspaceConfiguration): Promise<void> {
     const standalonePort = config.get<number>('standalonePort', 13305)
     const standaloneClient = new LemonadeClient(`http://localhost:${standalonePort}`)
@@ -258,7 +256,6 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
         id: 'standalone',
         name: 'Standalone Lemonade',
         url: `http://localhost:${standalonePort}`,
-        isOwn: false,
         status: ServerStatus.RUNNING,
         health,
         models,
@@ -269,40 +266,7 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
         id: 'standalone',
         name: 'Standalone Lemonade',
         url: `http://localhost:${standalonePort}`,
-        isOwn: false,
-        status: ServerStatus.STOPPED
-      }
-    }
-  }
-
-  /** Fetch the custom Lemonade server status. */
-  private async fetchCustomServer(config: vscode.WorkspaceConfiguration): Promise<void> {
-    const customUrl = config.get<string>('customServerUrl', '')
-    if (!customUrl) {
-      this.customServer = null
-      return
-    }
-    const customClient = new LemonadeClient(customUrl)
-    try {
-      const health = await customClient.getHealth()
-      const models = await customClient.listModels()
-      this.customServer = {
-        id: 'custom',
-        name: 'Custom Server',
-        url: customUrl,
-        isOwn: false,
-        status: ServerStatus.RUNNING,
-        health,
-        models,
-        maxLoadedModels: health.all_models_loaded.length
-      }
-    } catch {
-      this.customServer = {
-        id: 'custom',
-        name: 'Custom Server',
-        url: customUrl,
-        isOwn: false,
-        status: ServerStatus.STOPPED
+        status: ServerStatus.ERROR
       }
     }
   }
@@ -314,7 +278,6 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
         id: 'lemon',
         name: 'lemon (Embedded)',
         url: this.serverManager.url,
-        isOwn: true,
         status: this.serverManager.status,
         version: this.binaryManager.getInstalledVersion() ?? undefined,
         maxLoadedModels: config.get<number>('maxLoadedModels', 1)
@@ -340,7 +303,6 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
         id: 'lemon',
         name: 'lemon (Embedded)',
         url: this.serverManager.url,
-        isOwn: true,
         status: ServerStatus.RUNNING,
         version: this.binaryManager.getInstalledVersion() ?? undefined,
         health,
@@ -350,12 +312,40 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
     } catch (err) {
       this.lemonServer = {
         id: 'lemon',
-        name: 'lemon (Embedded)',
         url: this.serverManager.url,
-        isOwn: true,
+        name: 'lemond (Embedded)',
         status: ServerStatus.ERROR,
         version: this.binaryManager.getInstalledVersion() ?? undefined,
         error: err instanceof Error ? err.message : String(err)
+      }
+    }
+  }
+
+  private async fetchCustomServer(config: vscode.WorkspaceConfiguration): Promise<void> {
+    const customUrl = config.get<string>('customServerUrl', '')
+    if (!customUrl) {
+      this.customServer = null
+      return
+    }
+    const customClient = new LemonadeClient(customUrl)
+    try {
+      const health = await customClient.getHealth()
+      const models = await customClient.listModels()
+      this.customServer = {
+        id: 'custom',
+        name: 'Custom Server',
+        url: customUrl,
+        status: ServerStatus.RUNNING,
+        health,
+        models,
+        maxLoadedModels: health.all_models_loaded.length
+      }
+    } catch {
+      this.customServer = {
+        id: 'custom',
+        name: 'Custom Server',
+        url: customUrl,
+        status: ServerStatus.ERROR
       }
     }
   }
