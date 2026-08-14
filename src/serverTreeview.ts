@@ -92,7 +92,7 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
     // Show single active server
     const serverHeader = new TreeItem(displayName, Expanded)
     serverHeader.iconPath = new vscode.ThemeIcon('server')
-    serverHeader.contextValue = 'LEMOND_SERVER_HEADER'
+    serverHeader.contextValue = 'LEMON_SERVER_HEADER'
     serverHeader.tooltip = `Active server: ${displayName}\nURL: ${displayUrl}`
     items.push(serverHeader)
 
@@ -128,7 +128,7 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
 
   /** Get children for a specific element. */
   private getChildrenForElement(element: TreeItem): TreeItem[] {
-    if (element.contextValue === 'LEMOND_SERVER_HEADER') return this.getServerChildren(this._activeServer)
+    if (element.contextValue === 'LEMON_SERVER_HEADER') return this.getServerChildren(this._activeServer)
     if (element.contextValue === 'LEMOND_LOADED_HEADER') return this.getLoadedModelChildren(element)
     if (element.contextValue === 'LEMOND_MODELS_HEADER') return this.getModelChildren(element)
     return []
@@ -146,7 +146,7 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
       this.getStatusIcon(server.status),
       new vscode.ThemeColor(this.getStatusColor(server.status))
     )
-    statusItem.contextValue = 'LEMOND_SERVER_STATUS'
+    statusItem.contextValue = `LEMON_SERVER_${server.status}`
     items.push(statusItem)
 
     // Server URL

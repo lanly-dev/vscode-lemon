@@ -36,11 +36,13 @@
     "commands": [
       {
         "command": "lemon.startServer",
-        "title": "Lemon: Start Server"
+        "title": "Lemon: Start Server",
+        "icon": "$(play)"
       },
       {
         "command": "lemon.stopServer",
-        "title": "Lemon: Stop Server"
+        "title": "Lemon: Stop Server",
+        "icon": "$(debug-stop)"
       },
       {
         "command": "lemon.restartServer",
@@ -134,7 +136,17 @@
       "view/item/context": [
         {
           "command": "lemon.selectServer",
-          "when": "view == LEMON_TREEVIEW && viewItem == LEMOND_SERVER_HEADER",
+          "when": "view == LEMON_TREEVIEW && viewItem == LEMON_SERVER_HEADER",
+          "group": "inline"
+        },
+        {
+          "command": "lemon.startServer",
+          "when": "view == LEMON_TREEVIEW && viewItem == LEMON_SERVER_STOPPED && config.lemon.targetServer == embedded",
+          "group": "inline"
+        },
+        {
+          "command": "lemon.stopServer",
+          "when": "view == LEMON_TREEVIEW && viewItem == LEMON_SERVER_RUNNING && config.lemon.targetServer == embedded",
           "group": "inline"
         },
         {
