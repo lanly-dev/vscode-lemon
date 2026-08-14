@@ -32,7 +32,6 @@ export class BinaryManager {
     return path.join(this.binaryDir, isWindows ? 'lemonade.exe' : 'lemonade')
   }
 
-  /** Check if the binary exists. */
   isBinaryInstalled(): boolean {
     if (fs.existsSync(this.binaryPath)) return true
     // Check if the binary exists in a subdirectory (from a previous extraction)
@@ -302,7 +301,8 @@ export class BinaryManager {
           if (found) return found
         }
       }
-    } catch {
+    } catch (error) {
+      console.error(`Error reading directory: ${dir}`, error)
       // Ignore errors reading directories
     }
     return null

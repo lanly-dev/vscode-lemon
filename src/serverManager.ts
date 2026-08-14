@@ -30,8 +30,16 @@ export class ServerManager {
   private selectionChangeCallbacks: Array<() => void> = []
 
   constructor(private context: ExtensionContext, private binaryManager: BinaryManager) {
+    // Read configured ports so the getters/URLs reflect user settings immediately.
+    const config = vscode.workspace.getConfiguration('lemon')
+    this._embedPort = config.get<number>('embeddedPort', 8000)
+    this._standalonePort = config.get<number>('serverPort', 13305)
+
+    // Initialize the client for the default (embedded) server.
     this.client = new LemonadeClient(this._embedPort)
-    this.updateStatusBar()
+
+    // Apply the configured target server (standalone / embedded / custom).
+    this.applyConfiguredServerMode()
   }
 
   /** Get the current server status. */
@@ -230,7 +238,6 @@ export class ServerManager {
     this._serverUrl = url
     this._serverName = name
     Logger.info(`Selected server: ${name} (${url})`)
-    this.updateStatusBar()
     for (const callback of this.selectionChangeCallbacks) callback()
   }
 
@@ -390,25 +397,9 @@ export class ServerManager {
   /** Update the status and notify callbacks. */
   private setStatus(status: ServerStatus): void {
     this._status = status
-    this.updateStatusBar()
     for (const callback of this.statusChangeCallbacks) callback(status)
   }
 
-  /** Update the status bar item. */
-  private updateStatusBar(): void {
-    const icons: Record<ServerStatus, string> = {
-      [ServerStatus.STOPPED]: '$(debug-stop)',
-      [ServerStatus.STARTING]: '$(loading~spin)',
-      [ServerStatus.RUNNING]: '$(pass-filled)',
-      [ServerStatus.ERROR]: '$(error)'
-    }
-    const labels: Record<ServerStatus, string> = {
-      [ServerStatus.STOPPED]: 'Lemonade: Stopped',
-      [ServerStatus.STARTING]: 'Lemonade: Starting...',
-      [ServerStatus.RUNNING]: this._usingExistingServer ? 'Lemonade: Connected' : 'Lemonade: Running',
-      [ServerStatus.ERROR]: 'Lemonade: Error'
-    }
-  }
 
   /** Start the Lemonade Server. */
   async start(): Promise<boolean> {

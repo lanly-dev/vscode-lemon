@@ -12,8 +12,6 @@ export async function activate(context: vscode.ExtensionContext) {
   const binaryManager = new BinaryManager(context)
   const serverManager = new ServerManager(context, binaryManager)
   const chatParticipant = new ChatParticipant(context, serverManager)
-  // Apply the user-configured server mode (standalone / embedded / custom)
-  serverManager.applyConfiguredServerMode()
   const provider = await createTreeView(serverManager, binaryManager)
 
   const d1 = rc('lemon.startServer', async () => {
