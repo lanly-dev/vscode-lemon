@@ -82,8 +82,7 @@ export class ServerManager {
 
   /** A client bound to the currently selected server for model operations. */
   getClient(): LemonadeClient {
-    // Check
-    if (!this._modelClient) this._modelClient = new LemonadeClient('')
+    if (!this._modelClient) throw new Error('Model client is not initialized.')
     this._modelClient.setBaseUrl(this.selectedServerUrl)
     return this._modelClient
   }
@@ -412,9 +411,8 @@ export class ServerManager {
         this.setStatus(ServerStatus.ERROR)
         return false
       }
-      // check
-      const customClient = new LemonadeClient('')
-      customClient.setBaseUrl(customUrl)
+      const customClient = new LemonadeClient(customUrl)
+
       try {
         const healthy = await customClient.checkHealth()
         if (!healthy) throw new Error('health check failed')

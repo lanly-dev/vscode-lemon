@@ -43,8 +43,8 @@ export class ChatParticipant {
   /** Update the client to point at the currently selected server. */
   private updateClientForSelectedServer(): void {
     const url = this.serverManager.selectedServerUrl
-    this.client = new LemonadeClient('')
-    this.client.setBaseUrl(url)
+    // Why it creates a new client each time instead of reusing the existing one
+    this.client = new LemonadeClient(url)
     Logger.info(`Chat client pointing to: ${url}`)
   }
 

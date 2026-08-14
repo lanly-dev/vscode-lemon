@@ -271,9 +271,7 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
     // Check custom server (lemon.customServerUrl)
     const customUrl = config.get<string>('customServerUrl', '')
     if (customUrl) {
-      // check
-      const customClient = new LemonadeClient('')
-      customClient.setBaseUrl(customUrl)
+      const customClient = new LemonadeClient(customUrl)
       try {
         const health = await customClient.getHealth()
         const models = await customClient.listModels()

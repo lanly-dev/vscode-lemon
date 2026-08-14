@@ -16,6 +16,8 @@ export class LemonadeClient {
   private baseUrl: string
 
   constructor(url: string) {
+    // Trim and check for empty string
+    if (url.trim().length === 0) throw new Error('URL cannot be empty or whitespace only.')
     this.baseUrl = url.replace(/\/+$/, '')
   }
 
@@ -90,7 +92,6 @@ export class LemonadeClient {
     return response.data ?? []
   }
 
-  /** Load a model. */
   async loadModel(modelName: string): Promise<void> {
     Logger.info(`Loading model: ${modelName}`)
     const { status, data } = await this.request('POST', '/v1/load', {
@@ -100,7 +101,6 @@ export class LemonadeClient {
     Logger.info(`Model loaded: ${modelName}`)
   }
 
-  /** Unload a model. */
   async unloadModel(modelName?: string): Promise<void> {
     const body = modelName ? { model_name: modelName } : {}
     Logger.info(`Unloading model: ${modelName ?? 'all'}`)
@@ -109,16 +109,13 @@ export class LemonadeClient {
     Logger.info(`Model unloaded: ${modelName ?? 'all'}`)
   }
 
-  /** Unload all models. */
   async unloadAllModels(): Promise<void> {
     await this.unloadModel()
   }
 
   /** Pull (download) a model. */
-  async pullModel(
-    modelName: string,
-    onProgress?: (progress: string) => void
-  ): Promise<void> {
+  // Not working
+  async pullModel(modelName: string, onProgress?: (progress: string) => void): Promise<void> {
     Logger.info(`Pulling model: ${modelName}`)
 
     // Use non-streaming pull for simplicity
@@ -133,7 +130,6 @@ export class LemonadeClient {
     Logger.info(`Model pulled: ${modelName}`)
   }
 
-  /** Delete a model. */
   async deleteModel(modelName: string): Promise<void> {
     Logger.info(`Deleting model: ${modelName}`)
     const { status, data } = await this.request('POST', '/v1/delete', {
@@ -300,7 +296,6 @@ export class LemonadeClient {
     ]
 
     for (const msg of history) messages.push({ role: msg.role as 'user' | 'assistant', content: msg.content })
-
     messages.push({ role: 'user', content: prompt })
     return messages
   }
