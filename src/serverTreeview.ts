@@ -237,14 +237,20 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
     return null
   }
 
-  /** Fetch server data for both instances. */
+  /** Fetch server data for all known server instances. */
   private async fetchServerData(): Promise<void> {
-    // Check for standalone Lemonade server on the standalone port
     const config = vscode.workspace.getConfiguration('lemon')
+    await Promise.all([
+      this.fetchStandaloneServer(config),
+      this.fetchCustomServer(config),
+      this.fetchLemonServer(config)
+    ])
+  }
+
+  /** Fetch the standalone Lemonade server status. */
+  private async fetchStandaloneServer(config: vscode.WorkspaceConfiguration): Promise<void> {
     const standalonePort = config.get<number>('standalonePort', 13305)
     const standaloneClient = new LemonadeClient(`http://localhost:${standalonePort}`)
-
-    // Check standalone server
     try {
       const health = await standaloneClient.getHealth()
       const models = await standaloneClient.listModels()
@@ -267,75 +273,43 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
         status: ServerStatus.STOPPED
       }
     }
+  }
 
-    // Check custom server (lemon.customServerUrl)
+  /** Fetch the custom Lemonade server status. */
+  private async fetchCustomServer(config: vscode.WorkspaceConfiguration): Promise<void> {
     const customUrl = config.get<string>('customServerUrl', '')
-    if (customUrl) {
-      const customClient = new LemonadeClient(customUrl)
-      try {
-        const health = await customClient.getHealth()
-        const models = await customClient.listModels()
-        this.customServer = {
-          id: 'custom',
-          name: 'Custom Server',
-          url: customUrl,
-          isOwn: false,
-          status: ServerStatus.RUNNING,
-          health,
-          models,
-          maxLoadedModels: health.all_models_loaded.length
-        }
-      } catch {
-        this.customServer = {
-          id: 'custom',
-          name: 'Custom Server',
-          url: customUrl,
-          isOwn: false,
-          status: ServerStatus.STOPPED
-        }
+    if (!customUrl) {
+      this.customServer = null
+      return
+    }
+    const customClient = new LemonadeClient(customUrl)
+    try {
+      const health = await customClient.getHealth()
+      const models = await customClient.listModels()
+      this.customServer = {
+        id: 'custom',
+        name: 'Custom Server',
+        url: customUrl,
+        isOwn: false,
+        status: ServerStatus.RUNNING,
+        health,
+        models,
+        maxLoadedModels: health.all_models_loaded.length
       }
-    } else this.customServer = null
-
-    // Check lemond server
-    if (this.serverManager.status === ServerStatus.RUNNING) {
-      try {
-        const health = await this.client.getHealth()
-        const models = await this.client.listModels()
-        let maxLoadedModels = config.get<number>('maxLoadedModels', 1)
-
-        // If the server reports its max_loaded_models, keep the extension config in sync
-        if (typeof health.max_loaded_models === 'number' && Number.isInteger(health.max_loaded_models)) {
-          maxLoadedModels = health.max_loaded_models
-          if (config.get<number>('maxLoadedModels', 1) !== maxLoadedModels) {
-            await config.update('maxLoadedModels', maxLoadedModels, vscode.ConfigurationTarget.Global)
-            Logger.info(`Synced lemon.maxLoadedModels from server to ${maxLoadedModels}`)
-          }
-        }
-
-        this.lemonServer = {
-          id: 'lemon',
-          name: 'lemon (Embedded)',
-          url: this.serverManager.url,
-          isOwn: true,
-          status: ServerStatus.RUNNING,
-          version: this.binaryManager.getInstalledVersion() ?? undefined,
-          health,
-          models,
-          maxLoadedModels
-        }
-      } catch (err) {
-        this.lemonServer = {
-          id: 'lemon',
-          name: 'lemon (Embedded)',
-          url: this.serverManager.url,
-          isOwn: true,
-          status: ServerStatus.ERROR,
-          version: this.binaryManager.getInstalledVersion() ?? undefined,
-          error: err instanceof Error ? err.message : String(err)
-        }
+    } catch {
+      this.customServer = {
+        id: 'custom',
+        name: 'Custom Server',
+        url: customUrl,
+        isOwn: false,
+        status: ServerStatus.STOPPED
       }
-    } else {
-      const maxLoadedModels = config.get<number>('maxLoadedModels', 1)
+    }
+  }
+
+  /** Fetch the embedded lemon server status. */
+  private async fetchLemonServer(config: vscode.WorkspaceConfiguration): Promise<void> {
+    if (this.serverManager.status !== ServerStatus.RUNNING) {
       this.lemonServer = {
         id: 'lemon',
         name: 'lemon (Embedded)',
@@ -343,7 +317,45 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
         isOwn: true,
         status: this.serverManager.status,
         version: this.binaryManager.getInstalledVersion() ?? undefined,
+        maxLoadedModels: config.get<number>('maxLoadedModels', 1)
+      }
+      return
+    }
+
+    try {
+      const health = await this.client.getHealth()
+      const models = await this.client.listModels()
+      let maxLoadedModels = config.get<number>('maxLoadedModels', 1)
+
+      // If the server reports its max_loaded_models, keep the extension config in sync
+      if (typeof health.max_loaded_models === 'number' && Number.isInteger(health.max_loaded_models)) {
+        maxLoadedModels = health.max_loaded_models
+        if (config.get<number>('maxLoadedModels', 1) !== maxLoadedModels) {
+          await config.update('maxLoadedModels', maxLoadedModels, vscode.ConfigurationTarget.Global)
+          Logger.info(`Synced lemon.maxLoadedModels from server to ${maxLoadedModels}`)
+        }
+      }
+
+      this.lemonServer = {
+        id: 'lemon',
+        name: 'lemon (Embedded)',
+        url: this.serverManager.url,
+        isOwn: true,
+        status: ServerStatus.RUNNING,
+        version: this.binaryManager.getInstalledVersion() ?? undefined,
+        health,
+        models,
         maxLoadedModels
+      }
+    } catch (err) {
+      this.lemonServer = {
+        id: 'lemon',
+        name: 'lemon (Embedded)',
+        url: this.serverManager.url,
+        isOwn: true,
+        status: ServerStatus.ERROR,
+        version: this.binaryManager.getInstalledVersion() ?? undefined,
+        error: err instanceof Error ? err.message : String(err)
       }
     }
   }
