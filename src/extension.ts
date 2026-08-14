@@ -140,14 +140,21 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // Re-apply the selected server mode when the relevant settings change
   context.subscriptions.push(
-    vscode.workspace.onDidChangeConfiguration((e) => {
+    vscode.workspace.onDidChangeConfiguration(async (e) => {
       if (
         e.affectsConfiguration('lemon.targetServer')
         || e.affectsConfiguration('lemon.customServerUrl')
-        || e.affectsConfiguration('lemon.serverPort')
+        || e.affectsConfiguration('lemon.standalonePort')
         || e.affectsConfiguration('lemon.embeddedPort')
       ) {
         serverManager.applyConfiguredServerMode()
+
+        // When the user switches away from embedded mode, stop the
+        // local embedded process — it's no longer the active server.
+        const config = vscode.workspace.getConfiguration('lemon')
+        const newMode = config.get<string>('targetServer', 'standalone')
+        if (newMode !== 'embedded') await serverManager.stop()
+
         provider.refresh()
       }
     })

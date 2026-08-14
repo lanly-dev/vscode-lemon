@@ -15,8 +15,8 @@ import type {
 export class LemonadeClient {
   private baseUrl: string
 
-  constructor(port: number) {
-    this.baseUrl = `http://localhost:${port}`
+  constructor(url: string) {
+    this.baseUrl = url.replace(/\/+$/, '')
   }
 
   /** Update the base URL (e.g., when port changes). */

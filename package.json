@@ -166,7 +166,7 @@
     "configuration": {
       "title": "Lemon",
       "properties": {
-        "lemon.serverPort": {
+        "lemon.standalonePort": {
           "type": "number",
           "default": 13305,
           "description": "Port for the standalone Lemonade Server"

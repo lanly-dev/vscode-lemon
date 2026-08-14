@@ -27,7 +27,8 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
   private lemonServer: ServerInstance | null = null
 
   constructor(private serverManager: ServerManager, private binaryManager: BinaryManager) {
-    this.client = new LemonadeClient(serverManager.embeddedPort)
+    // check
+    this.client = new LemonadeClient(`http://localhost:${serverManager.embeddedPort}`)
     serverManager.onStatusChange(() => this.refresh())
   }
 
@@ -240,8 +241,8 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
   private async fetchServerData(): Promise<void> {
     // Check for standalone Lemonade server on the standalone port
     const config = vscode.workspace.getConfiguration('lemon')
-    const standalonePort = config.get<number>('serverPort', 13305)
-    const standaloneClient = new LemonadeClient(standalonePort)
+    const standalonePort = config.get<number>('standalonePort', 13305)
+    const standaloneClient = new LemonadeClient(`http://localhost:${standalonePort}`)
 
     // Check standalone server
     try {
@@ -270,7 +271,8 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
     // Check custom server (lemon.customServerUrl)
     const customUrl = config.get<string>('customServerUrl', '')
     if (customUrl) {
-      const customClient = new LemonadeClient(0)
+      // check
+      const customClient = new LemonadeClient('')
       customClient.setBaseUrl(customUrl)
       try {
         const health = await customClient.getHealth()

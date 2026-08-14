@@ -49,7 +49,7 @@ The Lemonade chat participant supports the following slash commands:
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `lemon.serverPort` | `13305` | Port for the standalone Lemonade Server |
+| `lemon.standalonePort` | `13305` | Port for the standalone Lemonade Server |
 | `lemon.embeddedPort` | `8000` | Port for the embedded lemon server |
 | `lemon.chatModel` | `""` | Model to use for chat (leave empty to be prompted) |
 | `lemon.customServerUrl` | (unset) | Custom Lemonade Server URL used when `lemon.targetServer` is `"custom"` (e.g., http://localhost:13305) |

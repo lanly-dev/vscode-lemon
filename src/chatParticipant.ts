@@ -17,7 +17,7 @@ export class ChatParticipant {
     private context: vscode.ExtensionContext,
     private serverManager: ServerManager
   ) {
-    this.client = new LemonadeClient(serverManager.embeddedPort)
+    this.client = new LemonadeClient(`http://localhost:${serverManager.embeddedPort}`)
 
     // Create the chat participant
     this.participant = vscode.chat.createChatParticipant(
@@ -43,7 +43,7 @@ export class ChatParticipant {
   /** Update the client to point at the currently selected server. */
   private updateClientForSelectedServer(): void {
     const url = this.serverManager.selectedServerUrl
-    this.client = new LemonadeClient(0)
+    this.client = new LemonadeClient('')
     this.client.setBaseUrl(url)
     Logger.info(`Chat client pointing to: ${url}`)
   }
