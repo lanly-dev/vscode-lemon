@@ -68,11 +68,13 @@
       },
       {
         "command": "lemon.loadModel",
-        "title": "Lemon: Load Model"
+        "title": "Lemon: Load Model",
+        "icon": "$(check)"
       },
       {
         "command": "lemon.unloadModel",
-        "title": "Lemon: Unload Model"
+        "title": "Lemon: Unload Model",
+        "icon": "$(close)"
       },
       {
         "command": "lemon.selectModel",
@@ -110,7 +112,7 @@
       "LEMON_SIDEBAR": [
         {
           "id": "LEMON_TREEVIEW",
-          "name": "Servers",
+          "name": "Server",
           "icon": "$(server)"
         }
       ]
@@ -151,12 +153,12 @@
         },
         {
           "command": "lemon.loadModel",
-          "when": "view == LEMON_TREEVIEW && viewItem == model-unloaded",
+          "when": "view == LEMON_TREEVIEW && viewItem == LEMOND_MODEL_AVAILABLE",
           "group": "inline"
         },
         {
           "command": "lemon.unloadModel",
-          "when": "view == LEMON_TREEVIEW && viewItem == model-loaded",
+          "when": "view == LEMON_TREEVIEW && (viewItem == LEMOND_MODEL_LOADED || viewItem == LEMOND_LOADED_MODEL)",
           "group": "inline"
         }
       ]

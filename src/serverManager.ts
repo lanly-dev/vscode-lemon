@@ -26,14 +26,10 @@ export class ServerManager {
 
   private client: LemonadeClient
   private process: ChildProcess | null = null
-  private statusBarItem: vscode.StatusBarItem
   private statusChangeCallbacks: Array<(status: ServerStatus) => void> = []
   private selectionChangeCallbacks: Array<() => void> = []
 
   constructor(private context: ExtensionContext, private binaryManager: BinaryManager) {
-    this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100)
-    this.statusBarItem.command = 'lemon.startServer'
-    this.context.subscriptions.push(this.statusBarItem)
     this.client = new LemonadeClient(this._embedPort)
     this.updateStatusBar()
   }
@@ -412,13 +408,6 @@ export class ServerManager {
       [ServerStatus.RUNNING]: this._usingExistingServer ? 'Lemonade: Connected' : 'Lemonade: Running',
       [ServerStatus.ERROR]: 'Lemonade: Error'
     }
-    this.statusBarItem.text = `${icons[this._status]} ${labels[this._status]}`
-    const mode = this._usingExistingServer ? 'Connected to' : 'Running at'
-    const selected = this._serverName
-      ? `Chat: ${this._serverName}`
-      : ''
-    this.statusBarItem.tooltip = `Lemonade Server - ${mode} ${this.url}\n${selected}`
-    this.statusBarItem.show()
   }
 
   /** Start the Lemonade Server. */
@@ -697,6 +686,5 @@ export class ServerManager {
     if (!this._usingExistingServer && this.process && !this.process.killed) this.process.kill('SIGKILL')
     this.process = null
     this._usingExistingServer = false
-    this.statusBarItem.dispose()
   }
 }

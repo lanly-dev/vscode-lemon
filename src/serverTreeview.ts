@@ -213,7 +213,8 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
     const loadedIds = new Set(server.health?.all_models_loaded.map((m) => m.model_name) ?? [])
     return server.models.map((model) => {
       const isLoaded = loadedIds.has(model.id)
-      const item = new TreeItem(model.id, None)
+      const item = new TreeItem(model.id, None) as vscode.TreeItem & { modelId: string }
+      item.modelId = model.id
       if (isLoaded) {
         item.iconPath = new vscode.ThemeIcon('pass-filled', new vscode.ThemeColor('charts.green'))
         item.contextValue = 'LEMOND_MODEL_LOADED'
