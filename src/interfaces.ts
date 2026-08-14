@@ -5,6 +5,13 @@ export enum ServerStatus {
   ERROR = 'ERROR',
 }
 
+/** The user-selected Lemonade server to target for chat and model operations. */
+export enum TargetServer {
+  STANDALONE = 'standalone',
+  EMBEDDED = 'embedded',
+  CUSTOM = 'custom',
+}
+
 /** A chat message in OpenAI format. */
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant'

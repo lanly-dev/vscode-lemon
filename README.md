@@ -52,18 +52,17 @@ The Lemonade chat participant supports the following slash commands:
 | `lemon.serverPort` | `13305` | Port for the standalone Lemonade Server |
 | `lemon.embeddedPort` | `8000` | Port for the embedded lemon server |
 | `lemon.chatModel` | `""` | Model to use for chat (leave empty to be prompted) |
-| `lemon.customServerUrl` | (unset) | Custom Lemonade Server URL used when `lemon.serverMode` is `"custom"` (e.g., http://localhost:13305) |
-| `lemon.serverMode` | `"auto"` | Which Lemonade Server to use: `standalone`, `embedded`, or `custom` |
+| `lemon.customServerUrl` | (unset) | Custom Lemonade Server URL used when `lemon.targetServer` is `"custom"` (e.g., http://localhost:13305) |
+| `lemon.targetServer` | `"standalone"` | Which Lemonade Server to use: `standalone`, `embedded`, or `custom` |
 | `lemon.maxLoadedModels` | (unset) | Maximum number of loaded models, Use `-1` for unlimited. |
 
 ## Server Selection
 
-You can choose which Lemonade server the extension uses by setting **`lemon.serverMode`** (`Lemon: Select Server` lets you pick from the command palette, which updates this setting automatically):
+You can choose which Lemonade server the extension uses by setting **`lemon.targetServer`** (`Lemon: Select Server` lets you pick from the command palette, which updates this setting automatically):
 
-| Mode | Behavior |
-|------|----------|
-| `auto` (default) | Prefers a running standalone Lemonade; otherwise starts the embedded `lemon` binary |
-| `standalone` | Requires an existing system-installed standalone Lemonade; the extension does **not** start an embedded server |
+| Value | Behavior |
+|-------|----------|
+| `standalone` (default) | Connects to an existing system-installed standalone Lemonade; the extension does **not** start an embedded server |
 | `embedded` | Always starts the bundled `lemon` binary (does not auto-connect to standalone) |
 | `custom` | Connects to the URL in `lemon.customServerUrl` (e.g. a remote or other local server); no local process is launched |
 

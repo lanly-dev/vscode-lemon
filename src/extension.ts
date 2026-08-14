@@ -144,7 +144,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (
-        e.affectsConfiguration('lemon.serverMode')
+        e.affectsConfiguration('lemon.targetServer')
         || e.affectsConfiguration('lemon.customServerUrl')
         || e.affectsConfiguration('lemon.serverPort')
         || e.affectsConfiguration('lemon.embeddedPort')

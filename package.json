@@ -163,7 +163,7 @@
         "lemon.customServerUrl": {
           "type": "string",
           "default": "",
-          "description": "Custom Lemonade Server URL to use when lemon.serverMode is \"custom\" (e.g., http://localhost:13305)"
+          "description": "Custom Lemonade Server URL to use when lemon.targetServer is \"custom\" (e.g., http://localhost:13305)"
         },
         "lemon.targetServer": {
           "type": "string",
