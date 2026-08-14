@@ -87,7 +87,8 @@
       },
       {
         "command": "lemon.selectServer",
-        "title": "Lemon: Select Server"
+        "title": "Lemon: Select Server",
+        "icon": "$(arrow-swap)"
       },
       {
         "command": "lemon.setMaxLoadedModels",
@@ -106,7 +107,7 @@
     "views": {
       "LEMON_SIDEBAR": [
         {
-          "id": "lemon.serversView",
+          "id": "LEMON_TREEVIEW",
           "name": "Servers",
           "icon": "$(server)"
         }
@@ -116,29 +117,34 @@
       "view/title": [
         {
           "command": "lemon.refreshServer",
-          "when": "view == lemon.serversView",
+          "when": "view == LEMON_TREEVIEW",
           "group": "navigation"
         },
         {
           "command": "lemon.pullModel",
-          "when": "view == lemon.serversView",
+          "when": "view == LEMON_TREEVIEW",
           "group": "navigation"
         },
         {
           "command": "lemon.openSettings",
-          "when": "view == lemon.serversView",
+          "when": "view == LEMON_TREEVIEW",
           "group": "navigation"
         }
       ],
       "view/item/context": [
         {
+          "command": "lemon.selectServer",
+          "when": "view == LEMON_TREEVIEW && viewItem == LEMOND_SERVER_HEADER",
+          "group": "inline"
+        },
+        {
           "command": "lemon.loadModel",
-          "when": "view == lemon.serversView && viewItem == model-unloaded",
+          "when": "view == LEMON_TREEVIEW && viewItem == model-unloaded",
           "group": "inline"
         },
         {
           "command": "lemon.unloadModel",
-          "when": "view == lemon.serversView && viewItem == model-loaded",
+          "when": "view == LEMON_TREEVIEW && viewItem == model-loaded",
           "group": "inline"
         }
       ]
