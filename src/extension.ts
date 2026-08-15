@@ -55,7 +55,7 @@ export async function activate(context: vscode.ExtensionContext) {
     })
 
     if (!modelName) return
-    const client = serverManager.getClient()
+    const client = serverManager.client
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
@@ -86,8 +86,7 @@ export async function activate(context: vscode.ExtensionContext) {
   })
 
   const d9 = rc('lemon.unloadModel', async (item?: { modelId?: string }) => {
-    const modelName = await serverManager.unloadModel(item?.modelId)
-    if (!modelName) return
+    await serverManager.unloadModel(item?.modelId)
     provider.refresh()
   })
 

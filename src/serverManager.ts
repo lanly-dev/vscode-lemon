@@ -252,7 +252,7 @@ export class ServerManager {
    * If no model name is supplied, the user is prompted to pick one of the loaded models.
    * Resolves to the unloaded model name, or undefined if cancelled/failed.
    */
-  async unloadModel(modelName?: string): Promise<string | void> {
+  async unloadModel(modelName?: string): Promise<void> {
     if (!await this.ensureRunning()) return
     let name = modelName
 
@@ -279,11 +279,23 @@ export class ServerManager {
     }
 
     try {
-      await this._client.unloadModel(name)
+      await window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: `Unloading model: ${name}`,
+          cancellable: false
+        },
+        async (progress) => {
+          progress.report({ message: 'Unloading...' })
+          await this._client.unloadModel(name)
+        }
+      )
       showInformationMessage(`Model '${name}' unloaded successfully`)
+      return
     } catch (err: unknown) {
       Logger.error('Failed to unload model', err)
       showErrorMessage(`Failed to unload model: ${err}`)
+      return
     }
   }
 
@@ -383,7 +395,7 @@ export class ServerManager {
         break
       case TargetServer.EMBEDDED:
         const embeddedPort = config.get<number>('embeddedPort', 8000)
-        this.setSelectedServer(`http://localhost:${embeddedPort}`, 'lemond (Embedded)')
+        this.setSelectedServer(`http://localhost:${embeddedPort}`, 'lemon (Embedded)')
         break
       case TargetServer.CUSTOM: {
         const url = config.get<string>('customServerUrl', '')
@@ -542,7 +554,7 @@ export class ServerManager {
       try {
         const healthy = await customClient.checkHealth()
         if (!healthy) throw new Error('health check failed')
-        this.client = customClient
+        this._client = customClient
         this._usingExistingServer = true
         this.setSelectedServer(customUrl, 'Custom Server')
         this.setStatus(ServerStatus.RUNNING)
@@ -574,7 +586,7 @@ export class ServerManager {
       const standaloneHealthy = await standaloneClient.checkHealth()
       if (standaloneHealthy) {
         this._usingExistingServer = true
-        this.client = standaloneClient
+        this._client = standaloneClient
         this.setSelectedServer(`http://localhost:${this._standalonePort}`, 'Standalone Lemonade')
         this.setStatus(ServerStatus.RUNNING)
         showInformationMessage(`Connected to Standalone Lemonade at http://localhost:${this._standalonePort}`)
@@ -591,7 +603,7 @@ export class ServerManager {
     if (serverMode === TargetServer.EMBEDDED) this.setSelectedServer(this.url, 'lemon (Embedded)')
 
     // No standalone server found (or embedded mode forced), start embedded lemon
-    this.client = new LemonadeClient(`http://localhost:${this._embedPort}`)
+    this._client = new LemonadeClient(`http://localhost:${this._embedPort}`)
 
     // Check if the embedded port is in use by something else
     const portInUse = await this.isPortInUse(this._embedPort)
