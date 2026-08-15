@@ -18,13 +18,12 @@ export class ServerManager {
   private _embedPort: number = 8000
   private _standalonePort: number = 13305
 
-  private _modelClient?: LemonadeClient
   private _serverName: string = ''
   private _serverUrl: string = ''
   private _status: ServerStatus = ServerStatus.STOPPED
   private _usingExistingServer = false
 
-  private client: LemonadeClient
+  private _client: LemonadeClient
   private process: ChildProcess | null = null
   private statusChangeCallbacks: Array<(status: ServerStatus) => void> = []
   private selectionChangeCallbacks: Array<() => void> = []
@@ -35,9 +34,9 @@ export class ServerManager {
     const mode = config.get<TargetServer>('targetServer', TargetServer.STANDALONE)
     this._embedPort = config.get<number>('embeddedPort', 8000)
     this._standalonePort = config.get<number>('standalonePort', 13305)
-    if (mode === TargetServer.STANDALONE) this.client = new LemonadeClient(`http://localhost:${this._standalonePort}`)
-    else if (mode === TargetServer.EMBEDDED) this.client = new LemonadeClient(`http://localhost:${this._embedPort}`)
-    else this.client = new LemonadeClient(`http://localhost:${this._embedPort}`)
+    if (mode === TargetServer.STANDALONE) this._client = new LemonadeClient(`http://localhost:${this._standalonePort}`)
+    else if (mode === TargetServer.EMBEDDED) this._client = new LemonadeClient(`http://localhost:${this._embedPort}`)
+    else this._client = new LemonadeClient(`http://localhost:${this._embedPort}`)
 
     // Apply the configured target server (standalone / embedded / custom).
     this.applyConfiguredServerMode()
@@ -81,10 +80,10 @@ export class ServerManager {
   }
 
   /** A client bound to the currently selected server for model operations. */
-  getClient(): LemonadeClient {
-    if (!this._modelClient) throw new Error('Model client is not initialized.')
-    this._modelClient.setBaseUrl(this.selectedServerUrl)
-    return this._modelClient
+  get client(): LemonadeClient {
+    if (!this._client) throw new Error('Model client is not initialized.')
+    this._client.setBaseUrl(this.selectedServerUrl)
+    return this._client
   }
 
   /**
@@ -225,7 +224,6 @@ export class ServerManager {
    */
   async loadModel(modelName?: string): Promise<string | undefined> {
     if (!await this.ensureRunning()) return undefined
-    const client = this.getClient()
     const name = await this.resolveModelName(modelName)
     if (!name) return undefined
 
@@ -237,7 +235,7 @@ export class ServerManager {
           cancellable: false
         },
         async () => {
-          await client.loadModel(name!)
+          await this._client.loadModel(name!)
         }
       )
       showInformationMessage(`Model '${name}' loaded successfully`)
@@ -256,12 +254,11 @@ export class ServerManager {
    */
   async unloadModel(modelName?: string): Promise<string | void> {
     if (!await this.ensureRunning()) return
-    const client = this.getClient()
     let name = modelName
 
     if (!name) {
       try {
-        const health = await client.getHealth()
+        const health = await this._client.getHealth()
         const loadedModels = health.all_models_loaded.map((m) => m.model_name)
         if (loadedModels.length === 0) {
           showInformationMessage('No models are currently loaded')
@@ -282,7 +279,7 @@ export class ServerManager {
     }
 
     try {
-      await client.unloadModel(name)
+      await this._client.unloadModel(name)
       showInformationMessage(`Model '${name}' unloaded successfully`)
     } catch (err: unknown) {
       Logger.error('Failed to unload model', err)
@@ -301,8 +298,7 @@ export class ServerManager {
     Logger.info(`Set lemon.maxLoadedModels to ${value}`)
 
     if (this._status === ServerStatus.RUNNING) {
-      const client = this.getClient()
-      await client.updateConfig({ max_loaded_models: value })
+      await this._client.updateConfig({ max_loaded_models: value })
       Logger.info('Pushed max_loaded_models to running server')
     } else {
       showInformationMessage(
@@ -329,10 +325,8 @@ export class ServerManager {
 
   /** Show a quick pick of the available models and return the selected model name. */
   private async promptForModel(title: string): Promise<string | undefined> {
-    const client = this.getClient()
-
     try {
-      const models = await client.listModels()
+      const models = await this._client.listModels()
       if (models.length === 0) {
         showWarningMessage('No models available. Pull a model first.')
         return undefined
