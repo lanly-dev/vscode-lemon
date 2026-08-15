@@ -128,7 +128,7 @@ export class ServerManager {
         status: ServerStatus.RUNNING,
         health,
         models,
-        maxLoadedModels: health.all_models_loaded.length
+        maxLoadedModels: health.max_loaded_models
       }
     } catch {
       return {
@@ -155,7 +155,7 @@ export class ServerManager {
         status: ServerStatus.RUNNING,
         health,
         models,
-        maxLoadedModels: health.all_models_loaded.length
+        maxLoadedModels: health.max_loaded_models
       }
     } catch {
       return {
@@ -171,8 +171,8 @@ export class ServerManager {
   private async fetchEmbeddedServer(config: vscode.WorkspaceConfiguration): Promise<ServerInstance | null> {
     if (this._status !== ServerStatus.RUNNING) {
       return {
-        id: 'lemon',
-        name: 'lemon (Embedded)',
+        id: 'lemond',
+        name: 'lemond (Embedded)',
         url: this.url,
         status: this._status,
         version: this.binaryManager.getInstalledVersion() ?? undefined,
@@ -196,8 +196,8 @@ export class ServerManager {
       }
 
       return {
-        id: 'lemon',
-        name: 'lemon (Embedded)',
+        id: 'lemond',
+        name: 'lemond (Embedded)',
         url: this.url,
         status: ServerStatus.RUNNING,
         version: this.binaryManager.getInstalledVersion() ?? undefined,
@@ -207,8 +207,8 @@ export class ServerManager {
       }
     } catch (err) {
       return {
-        id: 'lemon',
-        name: 'lemon (Embedded)',
+        id: 'lemond',
+        name: 'lemond (Embedded)',
         url: this.url,
         status: ServerStatus.ERROR,
         version: this.binaryManager.getInstalledVersion() ?? undefined,

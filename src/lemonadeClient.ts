@@ -97,7 +97,13 @@ export class LemonadeClient {
     const { status, data } = await this.request('POST', '/v1/load', {
       model_name: modelName
     })
-    if (status !== 200) throw new Error(`Failed to load model: ${status} ${data}`)
+    if (status !== 200) {
+      throw new Error(
+        status === 409 && /slots_pinned_error/.test(data)
+          ? 'A model of this type is already loaded. Unload it first via "Lemon: Unload Model".'
+          : `Failed to load model: ${status} ${data}`
+      )
+    }
     Logger.info(`Model loaded: ${modelName}`)
   }
 
@@ -105,7 +111,13 @@ export class LemonadeClient {
     const body = modelName ? { model_name: modelName } : {}
     Logger.info(`Unloading model: ${modelName ?? 'all'}`)
     const { status, data } = await this.request('POST', '/v1/unload', body)
-    if (status !== 200) throw new Error(`Failed to unload model: ${status} ${data}`)
+    if (status !== 200) {
+      throw new Error(
+        status === 409 && /slots_pinned_error/.test(data)
+          ? 'This model is currently in use and cannot be unloaded right now.'
+          : `Failed to unload model: ${status} ${data}`
+      )
+    }
     Logger.info(`Model unloaded: ${modelName ?? 'all'}`)
   }
 
