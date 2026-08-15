@@ -79,9 +79,9 @@ export async function activate(context: vscode.ExtensionContext) {
   })
 
   const d8 = rc('lemon.loadModel', async (item?: { modelId?: string }) => {
-    const modelName = await serverManager.loadModel(item?.modelId)
-    if (!modelName) return
-    chatParticipant.setSelectedModel(modelName)
+    await serverManager.loadModel(item?.modelId)
+    // Need to look into how to update the selected model in the chat participant after loading a model
+    // chatParticipant.setSelectedModel(modelName)
     provider.refresh()
   })
 

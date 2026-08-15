@@ -220,12 +220,11 @@ export class ServerManager {
   /**
    * Load a model on the selected server.
    * If no model name is supplied, the user is prompted to pick one.
-   * Resolves to the loaded model name, or undefined if cancelled/failed.
    */
-  async loadModel(modelName?: string): Promise<string | undefined> {
+  async loadModel(modelName?: string): Promise<void> {
     if (!await this.ensureRunning()) return undefined
     const name = await this.resolveModelName(modelName)
-    if (!name) return undefined
+    if (!name) return
 
     try {
       await window.withProgress(
@@ -234,23 +233,22 @@ export class ServerManager {
           title: `Loading model: ${name}`,
           cancellable: false
         },
-        async () => {
+        async (progress) => {
+          progress.report({ message: 'Loading...' })
           await this._client.loadModel(name!)
         }
       )
       showInformationMessage(`Model '${name}' loaded successfully`)
-      return name
+      return
     } catch (err: unknown) {
       Logger.error('Failed to load model', err)
       showErrorMessage(`Failed to load model: ${err}`)
-      return undefined
     }
   }
 
   /**
    * Unload a model on the selected server.
    * If no model name is supplied, the user is prompted to pick one of the loaded models.
-   * Resolves to the unloaded model name, or undefined if cancelled/failed.
    */
   async unloadModel(modelName?: string): Promise<void> {
     if (!await this.ensureRunning()) return
