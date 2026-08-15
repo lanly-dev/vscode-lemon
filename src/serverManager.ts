@@ -9,7 +9,7 @@ const { showInputBox, showQuickPick } = window
 import { BinaryManager } from './binaryManager'
 import { LemonadeClient } from './lemonadeClient'
 import { Logger } from './logger'
-import { ServerStatus, TargetServer } from './interfaces'
+import { ServerStatus, TargetServer, type ServerInstance } from './interfaces'
 
 /**
  * Manages the Lemonade Server process lifecycle.
@@ -85,6 +85,137 @@ export class ServerManager {
     if (!this._modelClient) throw new Error('Model client is not initialized.')
     this._modelClient.setBaseUrl(this.selectedServerUrl)
     return this._modelClient
+  }
+
+  /**
+   * Fetch status for the currently selected target server and reflect it onto
+   * this._status. Returns the active ServerInstance for display (or null if
+   * none is configured, e.g. custom mode with no URL).
+   */
+  async getActiveServer(): Promise<ServerInstance | null> {
+    const config = vscode.workspace.getConfiguration('lemon')
+    const mode = config.get<TargetServer>('targetServer', TargetServer.STANDALONE)
+
+    let instance: ServerInstance | null
+    switch (mode) {
+      case TargetServer.EMBEDDED:
+        instance = await this.fetchEmbeddedServer(config)
+        break
+      case TargetServer.CUSTOM:
+        instance = await this.fetchCustomServer(config)
+        break
+      case TargetServer.STANDALONE:
+      default:
+        instance = await this.fetchStandaloneServer(config)
+        break
+    }
+
+    // Reflect the active server's status onto the manager.
+    if (instance) this.setStatus(instance.status)
+    return instance
+  }
+
+  /** Fetch the standalone Lemonade server status. */
+  private async fetchStandaloneServer(config: vscode.WorkspaceConfiguration): Promise<ServerInstance | null> {
+    const standalonePort = config.get<number>('standalonePort', 13305)
+    const client = new LemonadeClient(`http://localhost:${standalonePort}`)
+    try {
+      const health = await client.getHealth()
+      const models = await client.listModels()
+      return {
+        id: 'standalone',
+        name: 'Standalone Lemonade',
+        url: `http://localhost:${standalonePort}`,
+        status: ServerStatus.RUNNING,
+        health,
+        models,
+        maxLoadedModels: health.all_models_loaded.length
+      }
+    } catch {
+      return {
+        id: 'standalone',
+        name: 'Standalone Lemonade',
+        url: `http://localhost:${standalonePort}`,
+        status: ServerStatus.ERROR
+      }
+    }
+  }
+
+  /** Fetch the custom Lemonade server status. */
+  private async fetchCustomServer(config: vscode.WorkspaceConfiguration): Promise<ServerInstance | null> {
+    const customUrl = config.get<string>('customServerUrl', '')
+    if (!customUrl) return null
+    const client = new LemonadeClient(customUrl)
+    try {
+      const health = await client.getHealth()
+      const models = await client.listModels()
+      return {
+        id: 'custom',
+        name: 'Custom Server',
+        url: customUrl,
+        status: ServerStatus.RUNNING,
+        health,
+        models,
+        maxLoadedModels: health.all_models_loaded.length
+      }
+    } catch {
+      return {
+        id: 'custom',
+        name: 'Custom Server',
+        url: customUrl,
+        status: ServerStatus.ERROR
+      }
+    }
+  }
+
+  /** Fetch the embedded lemon server status. */
+  private async fetchEmbeddedServer(config: vscode.WorkspaceConfiguration): Promise<ServerInstance | null> {
+    if (this._status !== ServerStatus.RUNNING) {
+      return {
+        id: 'lemon',
+        name: 'lemon (Embedded)',
+        url: this.url,
+        status: this._status,
+        version: this.binaryManager.getInstalledVersion() ?? undefined,
+        maxLoadedModels: config.get<number>('maxLoadedModels', 1)
+      }
+    }
+
+    const embeddedClient = new LemonadeClient(this.url)
+    try {
+      const health = await embeddedClient.getHealth()
+      const models = await embeddedClient.listModels()
+      let maxLoadedModels = config.get<number>('maxLoadedModels', 1)
+
+      // If the server reports its max_loaded_models, keep the extension config in sync
+      if (typeof health.max_loaded_models === 'number' && Number.isInteger(health.max_loaded_models)) {
+        maxLoadedModels = health.max_loaded_models
+        if (config.get<number>('maxLoadedModels', 1) !== maxLoadedModels) {
+          await config.update('maxLoadedModels', maxLoadedModels, vscode.ConfigurationTarget.Global)
+          Logger.info(`Synced lemon.maxLoadedModels from server to ${maxLoadedModels}`)
+        }
+      }
+
+      return {
+        id: 'lemon',
+        name: 'lemon (Embedded)',
+        url: this.url,
+        status: ServerStatus.RUNNING,
+        version: this.binaryManager.getInstalledVersion() ?? undefined,
+        health,
+        models,
+        maxLoadedModels
+      }
+    } catch (err) {
+      return {
+        id: 'lemon',
+        name: 'lemon (Embedded)',
+        url: this.url,
+        status: ServerStatus.ERROR,
+        version: this.binaryManager.getInstalledVersion() ?? undefined,
+        error: err instanceof Error ? err.message : String(err)
+      }
+    }
   }
 
   /**
@@ -391,8 +522,9 @@ export class ServerManager {
     this.statusChangeCallbacks.push(callback)
   }
 
-  /** Update the status and notify callbacks. */
+  /** Update the status and notify callbacks (only on an actual change). */
   private setStatus(status: ServerStatus): void {
+    if (this._status === status) return
     this._status = status
     for (const callback of this.statusChangeCallbacks) callback(status)
   }

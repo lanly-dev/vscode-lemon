@@ -3,9 +3,6 @@ import * as vscode from 'vscode'
 import { TreeDataProvider, TreeItem, TreeItemCollapsibleState } from 'vscode'
 const { None, Expanded } = TreeItemCollapsibleState
 
-import { BinaryManager } from './binaryManager'
-import { LemonadeClient } from './lemonadeClient'
-import { Logger } from './logger'
 import { ServerManager } from './serverManager'
 import { ServerStatus } from './interfaces'
 
@@ -21,14 +18,7 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
 
   private _activeServer: ServerInstance | null = null
 
-  private client: LemonadeClient
-  private standaloneServer: ServerInstance | null = null
-  private customServer: ServerInstance | null = null
-  private lemonServer: ServerInstance | null = null
-
-  constructor(private serverManager: ServerManager, private binaryManager: BinaryManager) {
-    // check
-    this.client = new LemonadeClient(`http://localhost:${serverManager.embeddedPort}`)
+  constructor(private serverManager: ServerManager) {
     serverManager.onStatusChange(() => this.refresh())
   }
 
@@ -48,47 +38,10 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
 
     await this.fetchServerData()
 
-    // Determine which server to display as the active one.
-    // Prefer the explicitly selected server; otherwise auto-pick running → starting → default (embedded).
-    let displayServer: ServerInstance | null = null
-    let displayName = ''
-    let displayUrl = ''
-
-    const candidates: Array<{ server: ServerInstance | null, name: string }> = [
-      { server: this.standaloneServer, name: 'Standalone Lemonade' },
-      { server: this.customServer, name: 'Custom Server' },
-      { server: this.lemonServer, name: 'lemon (Embedded)' }
-    ]
-
-    // 1. Respect an explicit selection (by matching the selected server name).
-    const selectedName = this.serverManager.selectedServerName
-    const selectedMatch = candidates.find((c) => c.server && c.name === selectedName)
-    if (selectedMatch?.server) {
-      displayServer = selectedMatch.server
-      displayName = selectedMatch.name
-      displayUrl = selectedMatch.server.url
-    } else {
-      // 2. Auto-pick the first running server.
-      const running = candidates.find((c) => c.server?.status === ServerStatus.RUNNING)
-      if (running?.server) {
-        displayServer = running.server
-        displayName = running.name
-        displayUrl = running.server.url
-      } else {
-        // 3. Any server that is starting.
-        const starting = candidates.find((c) => c.server?.status === ServerStatus.STARTING)
-        if (starting?.server) {
-          displayServer = starting.server
-          displayName = starting.name
-          displayUrl = starting.server.url
-        } else {
-          // 4. Default to embedded (stopped).
-          displayServer = this.lemonServer
-          displayName = 'lemon (Embedded)'
-          displayUrl = this.lemonServer?.url || `http://localhost:8000`
-        }
-      }
-    }
+    // The tree shows only the currently selected target server.
+    const displayServer = this._activeServer
+    const displayName = displayServer?.name ?? 'No server configured'
+    const displayUrl = displayServer?.url ?? ''
 
     // Show single active server
     const serverHeader = new TreeItem(displayName, Expanded)
@@ -96,9 +49,6 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
     serverHeader.contextValue = 'LEMON_SERVER_HEADER'
     serverHeader.tooltip = `Active server: ${displayName}\nURL: ${displayUrl}`
     items.push(serverHeader)
-
-    // Store the active server reference for child elements
-    this._activeServer = displayServer
 
     // Loaded models section
     const loadedModels = this._activeServer?.health?.all_models_loaded || []
@@ -230,124 +180,13 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
   /** Find a server instance by its tooltip id. */
   private findServerByTooltip(tooltip: vscode.TreeItem['tooltip']): ServerInstance | null {
     const id = typeof tooltip === 'string' ? tooltip : ''
-    if (this.standaloneServer?.id === id) return this.standaloneServer
-    if (this.customServer?.id === id) return this.customServer
-    if (this.lemonServer?.id === id) return this.lemonServer
+    if (this._activeServer?.id === id) return this._activeServer
     return null
   }
 
   /** Fetch server data for all known server instances. */
   private async fetchServerData(): Promise<void> {
-    const config = vscode.workspace.getConfiguration('lemon')
-    await Promise.all([
-      this.fetchStandaloneServer(config),
-      this.fetchCustomServer(config),
-      this.fetchLemonServer(config)
-    ])
-  }
-
-  private async fetchStandaloneServer(config: vscode.WorkspaceConfiguration): Promise<void> {
-    const standalonePort = config.get<number>('standalonePort', 13305)
-    const standaloneClient = new LemonadeClient(`http://localhost:${standalonePort}`)
-    try {
-      const health = await standaloneClient.getHealth()
-      const models = await standaloneClient.listModels()
-      this.standaloneServer = {
-        id: 'standalone',
-        name: 'Standalone Lemonade',
-        url: `http://localhost:${standalonePort}`,
-        status: ServerStatus.RUNNING,
-        health,
-        models,
-        maxLoadedModels: health.all_models_loaded.length
-      }
-    } catch {
-      this.standaloneServer = {
-        id: 'standalone',
-        name: 'Standalone Lemonade',
-        url: `http://localhost:${standalonePort}`,
-        status: ServerStatus.ERROR
-      }
-    }
-  }
-
-  /** Fetch the embedded lemon server status. */
-  private async fetchLemonServer(config: vscode.WorkspaceConfiguration): Promise<void> {
-    if (this.serverManager.status !== ServerStatus.RUNNING) {
-      this.lemonServer = {
-        id: 'lemon',
-        name: 'lemon (Embedded)',
-        url: this.serverManager.url,
-        status: this.serverManager.status,
-        version: this.binaryManager.getInstalledVersion() ?? undefined,
-        maxLoadedModels: config.get<number>('maxLoadedModels', 1)
-      }
-      return
-    }
-
-    try {
-      const health = await this.client.getHealth()
-      const models = await this.client.listModels()
-      let maxLoadedModels = config.get<number>('maxLoadedModels', 1)
-
-      // If the server reports its max_loaded_models, keep the extension config in sync
-      if (typeof health.max_loaded_models === 'number' && Number.isInteger(health.max_loaded_models)) {
-        maxLoadedModels = health.max_loaded_models
-        if (config.get<number>('maxLoadedModels', 1) !== maxLoadedModels) {
-          await config.update('maxLoadedModels', maxLoadedModels, vscode.ConfigurationTarget.Global)
-          Logger.info(`Synced lemon.maxLoadedModels from server to ${maxLoadedModels}`)
-        }
-      }
-
-      this.lemonServer = {
-        id: 'lemon',
-        name: 'lemon (Embedded)',
-        url: this.serverManager.url,
-        status: ServerStatus.RUNNING,
-        version: this.binaryManager.getInstalledVersion() ?? undefined,
-        health,
-        models,
-        maxLoadedModels
-      }
-    } catch (err) {
-      this.lemonServer = {
-        id: 'lemon',
-        url: this.serverManager.url,
-        name: 'lemond (Embedded)',
-        status: ServerStatus.ERROR,
-        version: this.binaryManager.getInstalledVersion() ?? undefined,
-        error: err instanceof Error ? err.message : String(err)
-      }
-    }
-  }
-
-  private async fetchCustomServer(config: vscode.WorkspaceConfiguration): Promise<void> {
-    const customUrl = config.get<string>('customServerUrl', '')
-    if (!customUrl) {
-      this.customServer = null
-      return
-    }
-    const customClient = new LemonadeClient(customUrl)
-    try {
-      const health = await customClient.getHealth()
-      const models = await customClient.listModels()
-      this.customServer = {
-        id: 'custom',
-        name: 'Custom Server',
-        url: customUrl,
-        status: ServerStatus.RUNNING,
-        health,
-        models,
-        maxLoadedModels: health.all_models_loaded.length
-      }
-    } catch {
-      this.customServer = {
-        id: 'custom',
-        name: 'Custom Server',
-        url: customUrl,
-        status: ServerStatus.ERROR
-      }
-    }
+    this._activeServer = await this.serverManager.getActiveServer()
   }
 
   private getStatusText(status: ServerInstance['status']): string {
