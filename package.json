@@ -97,6 +97,11 @@
       {
         "command": "lemon.setMaxLoadedModels",
         "title": "Lemon: Set Max Loaded Models"
+      },
+      {
+        "command": "lemon.openServerUrl",
+        "title": "Lemon: Open Server URL",
+        "icon": "$(link-external)"
       }
     ],
     "viewsContainers": {
@@ -139,6 +144,11 @@
         {
           "command": "lemon.selectServer",
           "when": "view == LEMON_TREEVIEW && viewItem == LEMON_SERVER_HEADER",
+          "group": "inline"
+        },
+        {
+          "command": "lemon.openServerUrl",
+          "when": "view == LEMON_TREEVIEW && viewItem == LEMOND_SERVER_URL",
           "group": "inline"
         },
         {

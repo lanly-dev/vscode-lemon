@@ -135,7 +135,15 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   })
 
-  context.subscriptions.push(d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d13, d14)
+  const d15 = rc('lemon.openServerUrl', (item?: vscode.TreeItem) => {
+    const label = item?.label
+    if (!label) return
+    const url = typeof label === 'string' ? label : label.label
+    if (!url) return
+    vscode.env.openExternal(vscode.Uri.parse(url))
+  })
+
+  context.subscriptions.push(d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d13, d14, d15)
 
   // Re-apply the selected server mode when the relevant settings change
   context.subscriptions.push(
