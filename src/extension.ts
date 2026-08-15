@@ -159,11 +159,7 @@ export async function activate(context: vscode.ExtensionContext) {
       }
     })
   )
-
-  // Check for updates in the background
-  binaryManager.checkForUpdates().catch((err: unknown) => {
-    Logger.error('Update check failed', err)
-  })
+  binaryManager.checkForUpdates()
 }
 
 // Register tree view for Lemonade status

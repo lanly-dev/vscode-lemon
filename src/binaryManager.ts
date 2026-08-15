@@ -342,6 +342,8 @@ export class BinaryManager {
 
   /** Check for updates and optionally install them. */
   async checkForUpdates(): Promise<void> {
+    const mode = vscode.workspace.getConfiguration('lemon').get<string>('targetServer')
+    if (mode !== 'embedded') return
     if (!this.isBinaryInstalled()) {
       Logger.info('Binary not installed, skipping update check')
       return
