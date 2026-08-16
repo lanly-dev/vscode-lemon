@@ -412,6 +412,8 @@ export class ServerManager {
     const embeddedUrl = `http://localhost:${embeddedPort}`
     const defaultUrl = config.get<string>('customServerUrl', '')
 
+    const mode = config.get<TargetServer>('targetServer', TargetServer.STANDALONE)
+
     // Check if standalone server is running
     let standaloneRunning = false
     try {
@@ -425,33 +427,36 @@ export class ServerManager {
 
     // Standalone option
     if (standaloneRunning) {
-      items.push({
-        label: `$(server) Standalone Lemonade`,
-        description: standaloneUrl,
-        detail: 'The system-installed Lemonade Server',
-        picked: !this.isEmbeddedSelected && this.selectedServerName === 'Standalone Lemonade'
-      })
+      if (mode !== TargetServer.STANDALONE) {
+        items.push({
+          label: `$(server) Standalone Lemonade`,
+          description: standaloneUrl,
+          detail: 'The system-installed Lemonade Server'
+        })
+      }
     }
 
     // Embedded option
     const embeddedStatus = this._status === ServerStatus.RUNNING
       ? 'Running'
       : this._status === ServerStatus.STARTING ? 'Starting...' : 'Stopped'
-    items.push({
-      label: `$(server-process) lemon (Embedded)`,
-      description: embeddedUrl,
-      detail: `The lemon binary managed by this extension (${embeddedStatus})`,
-      picked: this.isEmbeddedSelected
-    })
+    if (mode !== TargetServer.EMBEDDED) {
+      items.push({
+        label: `$(server-process) lemon (Embedded)`,
+        description: embeddedUrl,
+        detail: `The lemon binary managed by this extension (${embeddedStatus})`
+      })
+    }
 
     // Custom URL option
     if (defaultUrl) {
-      items.push({
-        label: `$(globe) Custom Server`,
-        description: defaultUrl,
-        detail: 'A user-configured Lemonade Server URL',
-        picked: !this.isEmbeddedSelected && this.selectedServerName === 'Custom Server'
-      })
+      if (mode !== TargetServer.CUSTOM) {
+        items.push({
+          label: `$(globe) Custom Server`,
+          description: defaultUrl,
+          detail: 'A user-configured Lemonade Server URL'
+        })
+      }
     }
 
     // Always include the option to add a custom URL
