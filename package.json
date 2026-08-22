@@ -102,6 +102,11 @@
         "command": "lemon.openServerUrl",
         "title": "Lemon: Open Server URL",
         "icon": "$(link-external)"
+      },
+      {
+        "command": "lemon.editServerPort",
+        "title": "Lemon: Edit Server Port / URL",
+        "icon": "$(edit)"
       }
     ],
     "viewsContainers": {
@@ -148,6 +153,11 @@
         },
         {
           "command": "lemon.openServerUrl",
+          "when": "view == LEMON_TREEVIEW && viewItem == LEMOND_SERVER_URL",
+          "group": "inline"
+        },
+        {
+          "command": "lemon.editServerPort",
           "when": "view == LEMON_TREEVIEW && viewItem == LEMOND_SERVER_URL",
           "group": "inline"
         },
