@@ -1,10 +1,13 @@
-import { ChildProcess, spawn } from 'child_process'
+import { ChildProcess, exec, spawn } from 'child_process'
 import * as fs from 'fs'
 import * as path from 'path'
+import { promisify } from 'util'
 import * as vscode from 'vscode'
 import { ExtensionContext, window } from 'vscode'
 const { showErrorMessage, showInformationMessage, showWarningMessage } = window
 const { showInputBox, showQuickPick } = window
+
+const execAsync = promisify(exec)
 
 import { BinaryManager } from './binaryManager'
 import { LemonadeClient } from './lemonadeClient'
@@ -25,6 +28,8 @@ export class ServerManager {
 
   private _client: LemonadeClient
   private process: ChildProcess | null = null
+  private _fatalErrorShown = false
+  private _processExited = false
   private statusChangeCallbacks: Array<(status: ServerStatus) => void> = []
   private selectionChangeCallbacks: Array<() => void> = []
 
@@ -611,9 +616,34 @@ export class ServerManager {
     // Check if the embedded port is in use by something else
     const portInUse = await this.isPortInUse(this._embedPort)
     if (portInUse) {
-      showErrorMessage(
-        `Port ${this._embedPort} is already in use by another application. `
-        + 'Please change the port in settings (lemon.embeddedPort).'
+      // Identify which process owns the port so we can decide how to handle it.
+      const ownerPaths = await this.getListeningProcessPaths(this._embedPort)
+      const ownBinary = path.resolve(this.binaryManager.binaryPath)
+      const isOwnBinary = ownerPaths.some((p) => this.pathsEqual(p, ownBinary))
+
+      if (isOwnBinary) {
+        // It's the extension's own embedded binary already running on this port.
+        // Reconnect to it instead of trying to start a duplicate.
+        Logger.info(
+          `Found the extension's own embedded server already listening on port ${this._embedPort}; connecting to it.`
+        )
+        this._usingExistingServer = true
+        this._client = new LemonadeClient(`http://localhost:${this._embedPort}`)
+        this.setSelectedServer(`http://localhost:${this._embedPort}`, 'lemon (Embedded)')
+        this.setStatus(ServerStatus.RUNNING)
+        showInformationMessage(
+          `Connected to existing embedded Lemonade Server at http://localhost:${this._embedPort}`
+        )
+        return true
+      }
+
+      const owner = ownerPaths.length
+        ? ownerPaths.join(', ')
+        : `unknown process (PID available via netstat port ${this._embedPort})`
+      showInformationMessage(
+        `Port ${this._embedPort} is already in use by: ${owner}. ` +
+        'If this is your own Lemonade server, connect to it via lemon.targetServer ' +
+        'instead of starting a new embedded one, or change lemon.embeddedPort.'
       )
       this.setStatus(ServerStatus.ERROR)
       return false
@@ -664,6 +694,8 @@ export class ServerManager {
     }
 
     // Handle process output
+    this._fatalErrorShown = false
+    this._processExited = false
     this.process.stdout?.on('data', (data: Buffer) => {
       const text = data.toString().trim()
       if (text) Logger.info(`[lemon] ${text}`)
@@ -671,7 +703,14 @@ export class ServerManager {
 
     this.process.stderr?.on('data', (data: Buffer) => {
       const text = data.toString().trim()
-      if (text) Logger.warn(`[lemon] ${text}`)
+      if (!text) return
+      Logger.warn(`[lemon] ${text}`)
+      // The lemond process reports a fatal startup error (e.g. port already
+      // in use) through its own logs. Surface it to the user as an error popup.
+      if (!this._fatalErrorShown && /already in use|ERROR|will now exit/i.test(text)) {
+        this._fatalErrorShown = true
+        showErrorMessage(`Lemonade Server failed to start: ${text}`)
+      }
     })
 
     this.process.on('error', (err) => {
@@ -683,6 +722,7 @@ export class ServerManager {
     this.process.on('exit', (code, signal) => {
       Logger.info(`Server process exited (code: ${code}, signal: ${signal})`)
       this.process = null
+      this._processExited = true
       if (this._status !== ServerStatus.STOPPED) this.setStatus(ServerStatus.STOPPED)
     })
 
@@ -695,6 +735,15 @@ export class ServerManager {
       showInformationMessage('Lemonade Server started successfully')
       return true
     }
+
+    // The process exited before becoming ready. The real cause (e.g. port
+    // already in use) was already reported, so skip the misleading timeout.
+    if (this._processExited) {
+      Logger.info('Server process exited before becoming ready; skipping timeout wait.')
+      this.setStatus(ServerStatus.ERROR)
+      return false
+    }
+
     Logger.error('Server failed to become ready within timeout')
     this.setStatus(ServerStatus.ERROR)
     showErrorMessage('Lemonade Server failed to start within 60 seconds. Check the output for details.')
@@ -732,12 +781,79 @@ export class ServerManager {
     })
   }
 
+  /**
+   * Enumerate the executable paths of processes listening on the given port.
+   * Returns an empty array if the port is free or ownership cannot be resolved.
+   */
+  private async getListeningProcessPaths(port: number): Promise<string[]> {
+    const paths: string[] = []
+    try {
+      if (process.platform === 'win32') {
+        // Base64-encode the script to avoid PowerShell/cmd quoting pitfalls.
+        const script = [
+          `$pids = Get-NetTCPConnection -LocalPort ${port} -State Listen -ErrorAction SilentlyContinue ` +
+          `| Select-Object -ExpandProperty OwningProcess -Unique;`,
+          `$paths = @();`,
+          `foreach ($id in $pids) {`,
+          `  $pr = Get-CimInstance Win32_Process -Filter ('ProcessId=' + $id) -ErrorAction SilentlyContinue;`,
+          `  if ($pr -and $pr.ExecutablePath) { $paths += $pr.ExecutablePath }`,
+          `};`,
+          `$paths`
+        ].join(' ')
+        const encoded = Buffer.from(script, 'utf16le').toString('base64')
+        const { stdout } = await execAsync(
+          `powershell -NoProfile -NonInteractive -EncodedCommand ${encoded}`,
+          { timeout: 15000 }
+        )
+        paths.push(...stdout.split(/\r?\n/).map((l) => l.trim()).filter(Boolean))
+      } else {
+        // Linux / macOS: find the PIDs listening on the port.
+        const { stdout } = await execAsync(
+          `lsof -nP -t -iTCP:${port} -sTCP:LISTEN`,
+          { timeout: 15000 }
+        )
+        for (const rawPid of stdout.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)) {
+          const pid = parseInt(rawPid, 10)
+          if (!pid) continue
+          try {
+            if (process.platform === 'linux') {
+              // Resolve the owning executable through /proc (handles symlinks).
+              paths.push(fs.realpathSync(`/proc/${pid}/exe`))
+            } else {
+              // macOS: lsof reports the executable file descriptor.
+              const { stdout: exeOut } = await execAsync(
+                `lsof -a -d txt -nP -Fn -p ${pid}`,
+                { timeout: 10000 }
+              )
+              const match = exeOut.split(/\r?\n/).find((l) => l.startsWith('n'))
+              if (match) paths.push(match.slice(1))
+            }
+          } catch {
+            // PID disappeared or permissions denied; skip.
+          }
+        }
+      }
+    } catch {
+      Logger.warn(`Could not enumerate the process owning port ${port}`)
+    }
+    return paths
+  }
+
+  /** Compare two executable paths, ignoring platform-specific case differences. */
+  private pathsEqual(a: string, b: string): boolean {
+    const na = path.resolve(a)
+    const nb = path.resolve(b)
+    return process.platform === 'win32'
+      ? na.toLowerCase() === nb.toLowerCase()
+      : na === nb
+  }
+
   /** Wait for the server to respond to health checks. */
   private async waitForReady(timeoutMs: number = 60000): Promise<boolean> {
     const startTime = Date.now()
     const checkInterval = 1000
 
-    while (Date.now() - startTime < timeoutMs) {
+    while (!this._processExited && Date.now() - startTime < timeoutMs) {
       try {
         const healthy = await this.client.checkHealth()
         if (healthy) return true

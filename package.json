@@ -153,7 +153,7 @@
         },
         {
           "command": "lemon.startServer",
-          "when": "view == LEMON_TREEVIEW && viewItem == LEMON_SERVER_STOPPED && config.lemon.targetServer == embedded",
+          "when": "view == LEMON_TREEVIEW && (viewItem == LEMON_SERVER_STOPPED || viewItem == LEMON_SERVER_ERROR) && config.lemon.targetServer == embedded",
           "group": "inline"
         },
         {
@@ -207,7 +207,7 @@
         },
         "lemon.maxLoadedModels": {
           "type": "number",
-          "description": "Maximum number of loaded models, Use -1 for unlimited."
+          "description": "Maximum number of loaded models (for each type?), Use -1 for unlimited."
         }
       }
     }
