@@ -415,86 +415,41 @@ export class ServerManager {
     const embeddedPort = config.get<number>('embeddedPort', 8000)
     const standaloneUrl = `http://localhost:${standalonePort}`
     const embeddedUrl = `http://localhost:${embeddedPort}`
-    const defaultUrl = config.get<string>('customServerUrl', '')
+    let defaultUrl = config.get<string>('customServerUrl', '')
 
     const mode = config.get<TargetServer>('targetServer', TargetServer.STANDALONE)
-
-    // Check if standalone server is running
-    let standaloneRunning = false
-    try {
-      const standaloneClient = new LemonadeClient(`http://localhost:${standalonePort}`)
-      standaloneRunning = await standaloneClient.checkHealth()
-    } catch {
-      // Not running
-    }
-
     const items: vscode.QuickPickItem[] = []
 
-    // Standalone option
-    if (standaloneRunning) {
-      if (mode !== TargetServer.STANDALONE) {
-        items.push({
-          label: `$(server) Standalone Lemonade`,
-          description: standaloneUrl,
-          detail: 'The system-installed Lemonade Server'
-        })
-      }
+    if (mode !== TargetServer.STANDALONE) {
+      items.push({
+        label: `$(server) Standalone Lemonade`,
+        description: standaloneUrl,
+        detail: 'The system-installed Lemonade Server'
+      })
     }
 
-    // Embedded option
-    const embeddedStatus = this._status === ServerStatus.RUNNING
-      ? 'Running'
-      : this._status === ServerStatus.STARTING ? 'Starting...' : 'Stopped'
     if (mode !== TargetServer.EMBEDDED) {
       items.push({
         label: `$(server-process) lemon (Embedded)`,
         description: embeddedUrl,
-        detail: `The lemon binary managed by this extension (${embeddedStatus})`
+        detail: `The lemon binary managed by this extension`
       })
     }
 
-    // Custom URL option
-    if (defaultUrl) {
-      if (mode !== TargetServer.CUSTOM) {
-        items.push({
-          label: `$(globe) Custom Server`,
-          description: defaultUrl,
-          detail: 'A user-configured Lemonade Server URL'
-        })
-      }
+    if (mode !== TargetServer.CUSTOM) {
+      items.push({
+        label: `$(globe) Custom Server`,
+        description: defaultUrl,
+        detail: 'A user-configured Lemonade Server URL'
+      })
     }
 
-    // Always include the option to add a custom URL
-    items.push({
-      label: '$(add) Add Custom Server URL...',
-      description: '',
-      detail: 'Enter any Lemonade Server URL to connect to'
-    })
-
     const selected = await showQuickPick(items, {
-      title: 'Select Server for Chat',
+      title: 'Select Lemonade Server',
       placeHolder: 'Choose which Lemonade Server to use'
     })
 
     if (!selected) return
-
-    // Handle "Add Custom Server URL..."
-    if (selected.label.includes('Add Custom Server URL')) {
-      const url = await showInputBox({
-        title: 'Custom Server URL',
-        prompt: 'Enter the Lemonade Server URL (e.g., http://localhost:13305)',
-        placeHolder: 'http://localhost:13305',
-        value: defaultUrl
-      })
-      if (!url) return
-
-      // Save to config and select
-      await config.update('customServerUrl', url, vscode.ConfigurationTarget.Global)
-      await config.update('targetServer', TargetServer.CUSTOM, vscode.ConfigurationTarget.Global)
-      this.setSelectedServer(url, 'Custom Server')
-      showInformationMessage(`Connected to custom server: ${url}`)
-      return
-    }
 
     // Select the chosen server
     if (selected.label.includes('Standalone')) {
@@ -502,32 +457,25 @@ export class ServerManager {
       this.setSelectedServer(standaloneUrl, 'Standalone Lemonade')
       showInformationMessage(`Using Standalone Lemonade at ${standaloneUrl}`)
     } else if (selected.label.includes('lemon')) {
-      // If embedded server is not running, offer to start it
-      if (this._status !== ServerStatus.RUNNING) {
-        const start = await showInformationMessage(
-          'The embedded lemon server is not running. Start it now?',
-          'Start Server',
-          'Cancel'
-        )
-        if (start === 'Start Server') {
-          const started = await this.start()
-          if (!started) {
-            showErrorMessage('Failed to start the embedded lemon server')
-            return
-          }
-        } else {
-          await config.update('targetServer', TargetServer.EMBEDDED, vscode.ConfigurationTarget.Global)
-          this.setSelectedServer(embeddedUrl, 'lemon (Embedded)')
-          return
-        }
-      }
       await config.update('targetServer', TargetServer.EMBEDDED, vscode.ConfigurationTarget.Global)
       this.setSelectedServer(embeddedUrl, 'lemon (Embedded)')
       showInformationMessage(`Using lemon (Embedded) at ${embeddedUrl}`)
-    } else if (selected.label.includes('Custom Server')) {
+    } else {
+      if (!defaultUrl) {
+        const url = await showInputBox({
+          title: 'Custom Server URL',
+          prompt: 'Enter the Lemonade Server URL',
+          value: defaultUrl
+        })
+        if (!url) return
+        defaultUrl = url
+      }
+      if (!defaultUrl) return
+      // Save to config and select
       await config.update('targetServer', TargetServer.CUSTOM, vscode.ConfigurationTarget.Global)
+      await config.update('customServerUrl', defaultUrl, vscode.ConfigurationTarget.Global)
       this.setSelectedServer(defaultUrl, 'Custom Server')
-      showInformationMessage(`Using custom server: ${defaultUrl}`)
+      showInformationMessage(`Connected to custom server: ${defaultUrl}`)
     }
   }
 
