@@ -45,10 +45,6 @@
         "icon": "$(debug-stop)"
       },
       {
-        "command": "lemon.restartServer",
-        "title": "Lemon: Restart Server"
-      },
-      {
         "command": "lemon.downloadBinary",
         "title": "Lemon: Download/Update Binary"
       },

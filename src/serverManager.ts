@@ -858,12 +858,6 @@ export class ServerManager {
     showInformationMessage('Lemonade Server stopped')
   }
 
-  /** Restart the Lemonade Server. */
-  async restart(): Promise<boolean> {
-    await this.stop()
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    return this.start()
-  }
 
   /** Check if the server is running and healthy. */
   async isHealthy(): Promise<boolean> {
