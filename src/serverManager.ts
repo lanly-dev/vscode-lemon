@@ -408,7 +408,7 @@ export class ServerManager {
     }
   }
 
-  /** Show a quick pick to choose which server to use for chat. */
+  // Switch the selected server
   async selectServer(): Promise<void> {
     const config = vscode.workspace.getConfiguration('lemon')
     const standalonePort = config.get<number>('standalonePort', 13305)
@@ -419,6 +419,13 @@ export class ServerManager {
 
     const mode = config.get<TargetServer>('targetServer', TargetServer.STANDALONE)
     const items: vscode.QuickPickItem[] = []
+
+    if (mode === TargetServer.EMBEDDED) {
+      if (this._status === ServerStatus.RUNNING || this._status === ServerStatus.STARTING) {
+        showInformationMessage('Please stop the embedded server before selecting another server.')
+        return
+      }
+    }
 
     if (mode !== TargetServer.STANDALONE) {
       items.push({
@@ -455,11 +462,9 @@ export class ServerManager {
     if (selected.label.includes('Standalone')) {
       await config.update('targetServer', TargetServer.STANDALONE, vscode.ConfigurationTarget.Global)
       this.setSelectedServer(standaloneUrl, 'Standalone Lemonade')
-      showInformationMessage(`Using Standalone Lemonade at ${standaloneUrl}`)
     } else if (selected.label.includes('lemon')) {
       await config.update('targetServer', TargetServer.EMBEDDED, vscode.ConfigurationTarget.Global)
       this.setSelectedServer(embeddedUrl, 'lemon (Embedded)')
-      showInformationMessage(`Using lemon (Embedded) at ${embeddedUrl}`)
     } else {
       if (!defaultUrl) {
         const url = await showInputBox({
@@ -475,7 +480,6 @@ export class ServerManager {
       await config.update('targetServer', TargetServer.CUSTOM, vscode.ConfigurationTarget.Global)
       await config.update('customServerUrl', defaultUrl, vscode.ConfigurationTarget.Global)
       this.setSelectedServer(defaultUrl, 'Custom Server')
-      showInformationMessage(`Connected to custom server: ${defaultUrl}`)
     }
   }
 
@@ -518,9 +522,7 @@ export class ServerManager {
         return true
       } catch {
         this.setStatus(ServerStatus.ERROR)
-        showErrorMessage(
-          `Failed to connect to custom Lemonade Server at ${customUrl}.`
-        )
+        showErrorMessage(`Failed to connect to custom Lemonade Server at ${customUrl}.`)
         return false
       }
     }
