@@ -84,9 +84,19 @@ export class LemonadeClient {
     return JSON.parse(data) as HealthResponse
   }
 
-  /** List all available models. */
-  async listModels(): Promise<LemonadeModel[]> {
-    const { status, data } = await this.request('GET', '/v1/models')
+  /**
+   * List models known to the server.
+   *
+   * By default this returns only installed/downloaded models (the classic
+   * `/v1/models` response). Pass `showAll = true` to fetch the server's full
+   * model catalog via `?show_all=true` — like the desktop Model Manager — which
+   * also includes suggested catalog entries that aren't downloaded yet. Each
+   * entry is tagged with a `downloaded` boolean so callers can tell apart
+   * what's available to pull from what's already installed.
+   */
+  async listModels(showAll = false): Promise<LemonadeModel[]> {
+    const query = showAll ? '?show_all=true' : ''
+    const { status, data } = await this.request('GET', `/v1/models${query}`)
     if (status !== 200) throw new Error(`Failed to list models: ${status} ${data}`)
     const response = JSON.parse(data) as { data: LemonadeModel[] }
     return response.data ?? []
@@ -125,8 +135,7 @@ export class LemonadeClient {
     await this.unloadModel()
   }
 
-  /** Pull (download) a model. */
-  // Not working
+  /** Pull (download) a model from the server registry. */
   async pullModel(modelName: string, onProgress?: (progress: string) => void): Promise<void> {
     Logger.info(`Pulling model: ${modelName}`)
 

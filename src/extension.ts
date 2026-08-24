@@ -1,7 +1,9 @@
 import * as vscode from 'vscode'
 import { BinaryManager } from './binaryManager'
 import { ChatParticipant } from './chatParticipant'
+import type { LemonadeModel } from './interfaces'
 import { Logger } from './logger'
+import { getModelLabel } from './modelLabel'
 import { ServerManager } from './serverManager'
 import { ServerViewProvider } from './serverTreeview'
 
@@ -44,13 +46,44 @@ export async function activate(context: vscode.ExtensionContext) {
   const d7 = rc('lemon.pullModel', async () => {
     if (!await serverManager.ensureRunning()) return
 
-    const modelName = await vscode.window.showInputBox({
+    // Fetch the full model catalog (?show_all=true), the same source the
+    // desktop Model Manager uses. Each entry is tagged with a `downloaded`
+    // flag, so we can present the models that aren't downloaded yet.
+    let allModels: LemonadeModel[]
+    try {
+      allModels = await serverManager.client.listModels(true)
+    } catch (err: unknown) {
+      Logger.error('Failed to list available models', err)
+      vscode.window.showErrorMessage(`Failed to list available models: ${err}`)
+      return
+    }
+
+    const pullable = allModels.filter((m) => !m.downloaded)
+    if (pullable.length === 0) {
+      vscode.window.showInformationMessage('All catalog models are already downloaded.')
+      return
+    }
+
+    // Human-readable download size.
+    const formatSize = (bytes?: number): string => {
+      if (!bytes || bytes <= 0) return ''
+      const mb = bytes / (1024 * 1024)
+      return mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${Math.round(mb)} MB`
+    }
+
+    const items: vscode.QuickPickItem[] = pullable.map((m) => ({
+      label: m.id,
+      description: getModelLabel(m) ?? '',
+      detail: formatSize(m.size)
+    }))
+
+    const selected = await vscode.window.showQuickPick(items, {
       title: 'Pull Model',
-      prompt: 'Enter the model name to download',
-      placeHolder: 'Model name'
+      placeHolder: 'Choose a model to download'
     })
 
-    if (!modelName) return
+    if (!selected) return
+    const modelName = selected.label
     const client = serverManager.client
     await vscode.window.withProgress(
       {

@@ -81,6 +81,16 @@ export interface LemonadeModel {
   label?: string
   /** Machine-readable model type from the server. */
   type?: string
+  /** Recipe (backend) used to load/run the model, e.g. "llamacpp". */
+  recipe?: string
+  /** Suggested models come from the server's built-in catalog: they are pullable but may not be downloaded yet. */
+  suggested?: boolean
+  /** Whether the model is already downloaded on disk (present when using `?show_all=true`). */
+  downloaded?: boolean
+  /** Whether an update is available for the model upstream. */
+  update_available?: boolean
+  /** Approximate model download size in bytes, when reported by the server. */
+  size?: number
 }
 
 export interface ModelTreeItem {
