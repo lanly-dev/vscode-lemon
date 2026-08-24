@@ -1,8 +1,7 @@
 import * as vscode from 'vscode'
 
-/**
- * Centralized logger that writes to a VS Code output channel.
- */
+
+// Centralized logger that writes to a VS Code output channel
 export class Logger {
   private static channel: vscode.OutputChannel
 

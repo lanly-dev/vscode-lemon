@@ -1,30 +1,26 @@
 import * as vscode from 'vscode'
-import { Logger } from './logger'
+
+import { getModelLabel } from './modelLabel'
 import { LemonadeClient } from './lemonadeClient'
+import { Logger } from './logger'
 import { ServerManager } from './serverManager'
 import { ServerStatus } from './interfaces'
-import { getModelLabel } from './modelLabel'
+
 import type { ChatMessage } from './interfaces'
 
 /**
  * Handles VS Code chat requests by forwarding them to the Lemonade Server.
  */
 export class ChatParticipant {
-  private participant: vscode.ChatParticipant
   private client: LemonadeClient
+  private participant: vscode.ChatParticipant
   private selectedModel: string | undefined
 
-  constructor(
-    private context: vscode.ExtensionContext,
-    private serverManager: ServerManager
-  ) {
+  constructor(private context: vscode.ExtensionContext, private serverManager: ServerManager) {
     this.client = new LemonadeClient(`http://localhost:${serverManager.embeddedPort}`)
 
     // Create the chat participant
-    this.participant = vscode.chat.createChatParticipant(
-      'LEMON_CHAT',
-      this.handleRequest.bind(this)
-    )
+    this.participant = vscode.chat.createChatParticipant('LEMON_CHAT', this.handleRequest.bind(this))
     this.participant.iconPath = new vscode.ThemeIcon('sparkle')
 
     // Update client when server status changes to running
@@ -160,11 +156,7 @@ export class ChatParticipant {
     // Build the chat messages from history
     const history = this.extractHistory(context)
     const command = request.command
-    const messages = LemonadeClient.toChatMessages(
-      request.prompt,
-      history,
-      command
-    )
+    const messages = LemonadeClient.toChatMessages(request.prompt, history, command)
 
     // Add context from active editor if available
     const editorContext = this.getEditorContext()

@@ -421,7 +421,6 @@ export class ServerManager {
     const mode = config.get<TargetServer>('targetServer', TargetServer.STANDALONE)
     const items: vscode.QuickPickItem[] = []
 
-
     if (mode !== TargetServer.STANDALONE) {
       items.push({
         label: `$(server) Standalone Lemonade`,
