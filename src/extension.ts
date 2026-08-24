@@ -64,17 +64,17 @@ export async function activate(context: vscode.ExtensionContext) {
       return
     }
 
-    // Human-readable download size.
-    const formatSize = (bytes?: number): string => {
-      if (!bytes || bytes <= 0) return ''
-      const mb = bytes / (1024 * 1024)
-      return mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${Math.round(mb)} MB`
+    // The /v1/models?show_all=true response reports `size` in **GB** (e.g.
+    // 0.38, 3.61, 5.2) — omitted when unknown. Format accordingly.
+    const formatSize = (sizeGb?: number): string => {
+      if (!sizeGb || sizeGb <= 0) return ''
+      return sizeGb >= 1024 ? `${(sizeGb / 1024).toFixed(1)} TB` : `${sizeGb.toFixed(2)} GB`
     }
 
     const items: vscode.QuickPickItem[] = pullable.map((m) => ({
       label: m.id,
       description: getModelLabel(m) ?? '',
-      detail: formatSize(m.size)
+      detail: formatSize(m.size) || 'Size not reported'
     }))
 
     const selected = await vscode.window.showQuickPick(items, {

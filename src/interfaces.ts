@@ -89,7 +89,7 @@ export interface LemonadeModel {
   downloaded?: boolean
   /** Whether an update is available for the model upstream. */
   update_available?: boolean
-  /** Approximate model download size in bytes, when reported by the server. */
+    /** Approximate model size in GB, when reported by the server. */
   size?: number
 }
 
