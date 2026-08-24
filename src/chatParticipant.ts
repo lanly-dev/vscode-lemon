@@ -51,10 +51,10 @@ export class ChatParticipant {
 
   /** Get the model to use for chat. */
   private async getModel(): Promise<string | undefined> {
-    // Check if a model is already selected
+    // Reuse the model already chosen earlier in this session.
     if (this.selectedModel) return this.selectedModel
 
-    // Check config for chat model
+    // Use the configured chat model if one is set.
     const config = vscode.workspace.getConfiguration('lemon')
     const chatModel = config.get<string>('chatModel', '')
 
@@ -63,21 +63,26 @@ export class ChatParticipant {
       return chatModel
     }
 
-    // Try to get loaded models from the server
     if (this.serverManager.status !== ServerStatus.RUNNING) return
 
     try {
-      const health = await this.client.getHealth()
-      if (health.model_loaded) {
-        this.selectedModel = health.model_loaded
-        return health.model_loaded
-      }
+      // No chat model configured -> let the user pick which model to chat with.
+      const allModels = await this.client.listModels()
+      const models = allModels.filter(
+        (m) => (m.labels ?? []).some((l) => l.toLowerCase() === 'chat')
+      )
 
-      // List all models and let user pick
-      const models = await this.client.listModels()
-      if (models.length === 0) {
+      if (allModels.length === 0) {
         vscode.window.showWarningMessage(
           'No models available. Please pull a model first using the "Lemon: Pull Model" command.'
+        )
+        return
+      }
+
+      if (models.length === 0) {
+        vscode.window.showWarningMessage(
+          `No chat-capable models found (label "chat"). ` +
+          'Pull a chat model or change the lemon.chatModelLabel setting.'
         )
         return
       }
@@ -87,8 +92,9 @@ export class ChatParticipant {
         description: getModelLabel(m) ?? m.owned_by ?? ''
       }))
       const selected = await vscode.window.showQuickPick(items, {
-        title: 'Select a model for chat',
-        placeHolder: 'Choose a model'
+        title: 'Select a model to chat with',
+        placeHolder: 'Choose a model',
+        ignoreFocusOut: true
       })
 
       if (selected) {
