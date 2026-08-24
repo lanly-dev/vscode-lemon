@@ -75,6 +75,12 @@ export interface LemonadeModel {
   object?: string
   created?: number
   owned_by?: string
+  /** Category labels of the model (e.g. ["transcription"], ["image"], ["chat"]). */
+  labels?: string[]
+  /** Human-friendly primary label derived from `labels`. */
+  label?: string
+  /** Machine-readable model type from the server. */
+  type?: string
 }
 
 export interface ModelTreeItem {

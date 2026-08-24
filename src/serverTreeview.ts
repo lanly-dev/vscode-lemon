@@ -5,6 +5,7 @@ const { None, Expanded } = TreeItemCollapsibleState
 
 import { ServerManager } from './serverManager'
 import { ServerStatus } from './interfaces'
+import { getModelLabel } from './modelLabel'
 
 import type { ServerInstance } from './interfaces'
 
@@ -165,12 +166,17 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
       const isLoaded = loadedIds.has(model.id)
       const item = new TreeItem(model.id, None) as vscode.TreeItem & { modelId: string }
       item.modelId = model.id
+
+      // Show the model's category label (e.g. "Transcription", "Image") as subtext.
+      const modelLabel = getModelLabel(model)
+      if (modelLabel) item.description = modelLabel
+
       if (isLoaded) {
         item.iconPath = new vscode.ThemeIcon('pass-filled', new vscode.ThemeColor('charts.green'))
         item.contextValue = 'LEMOND_MODEL_LOADED'
       } else {
         item.iconPath = new vscode.ThemeIcon('circle')
-        item.tooltip = `Model: ${model.id}`
+        item.tooltip = `Model: ${modelLabel ? `${model.id} (${modelLabel})` : model.id}`
         item.contextValue = 'LEMOND_MODEL_AVAILABLE'
       }
       return item

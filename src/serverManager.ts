@@ -13,6 +13,7 @@ import { BinaryManager } from './binaryManager'
 import { LemonadeClient } from './lemonadeClient'
 import { Logger } from './logger'
 import { ServerStatus, TargetServer, type ServerInstance } from './interfaces'
+import { getModelLabel } from './modelLabel'
 
 /**
  * Manages the Lemonade Server process lifecycle.
@@ -348,7 +349,7 @@ export class ServerManager {
       }
       const items: vscode.QuickPickItem[] = models.map((m) => ({
         label: m.id,
-        description: m.owned_by ?? ''
+        description: getModelLabel(m) ?? m.owned_by ?? ''
       }))
       const selected = await showQuickPick(items, {
         title,
@@ -420,12 +421,6 @@ export class ServerManager {
     const mode = config.get<TargetServer>('targetServer', TargetServer.STANDALONE)
     const items: vscode.QuickPickItem[] = []
 
-    if (mode === TargetServer.EMBEDDED) {
-      if (this._status === ServerStatus.RUNNING || this._status === ServerStatus.STARTING) {
-        showInformationMessage('Please stop the embedded server before selecting another server.')
-        return
-      }
-    }
 
     if (mode !== TargetServer.STANDALONE) {
       items.push({
@@ -816,6 +811,7 @@ export class ServerManager {
   }
 
   /** Stop the Lemonade Server. */
+  // TODO: Need to check
   async stop(): Promise<void> {
     // If using an existing server, just disconnect
     if (this._usingExistingServer) {

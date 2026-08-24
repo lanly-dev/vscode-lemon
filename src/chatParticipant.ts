@@ -3,6 +3,7 @@ import { Logger } from './logger'
 import { LemonadeClient } from './lemonadeClient'
 import { ServerManager } from './serverManager'
 import { ServerStatus } from './interfaces'
+import { getModelLabel } from './modelLabel'
 import type { ChatMessage } from './interfaces'
 
 /**
@@ -83,7 +84,7 @@ export class ChatParticipant {
 
       const items = models.map((m) => ({
         label: m.id,
-        description: m.owned_by ?? ''
+        description: getModelLabel(m) ?? m.owned_by ?? ''
       }))
       const selected = await vscode.window.showQuickPick(items, {
         title: 'Select a model for chat',
