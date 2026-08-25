@@ -65,12 +65,12 @@
       {
         "command": "lemon.loadModel",
         "title": "Lemon: Load Model",
-        "icon": "$(check)"
+        "icon": "$(run-above)"
       },
       {
         "command": "lemon.unloadModel",
         "title": "Lemon: Unload Model",
-        "icon": "$(close)"
+        "icon": "$(run-below)"
       },
       {
         "command": "lemon.selectModel",

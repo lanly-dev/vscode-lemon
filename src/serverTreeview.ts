@@ -55,7 +55,9 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
     const loadedModels = this._activeServer?.health?.all_models_loaded || []
 
     const loadedHeader = new TreeItem(`Loaded Models (${loadedModels.length})`, Expanded)
-    loadedHeader.iconPath = new vscode.ThemeIcon('zap')
+    let color
+    if (loadedModels.length) color = new vscode.ThemeColor('charts.yellow')
+    loadedHeader.iconPath = new vscode.ThemeIcon('zap', color)
     loadedHeader.contextValue = 'LEMOND_LOADED_HEADER'
     loadedHeader.tooltip = this._activeServer?.id
     items.push(loadedHeader)
