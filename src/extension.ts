@@ -119,6 +119,11 @@ export async function activate(context: vscode.ExtensionContext) {
     provider.refresh()
   })
 
+  const d17 = rc('lemon.removeModel', async (item?: { modelId?: string }) => {
+    await serverManager.deleteModel(item?.modelId)
+    provider.refresh()
+  })
+
   const d10 = rc('lemon.selectModel', async () => {
     const selected = await serverManager.selectModel()
     if (!selected) return
@@ -225,7 +230,7 @@ export async function activate(context: vscode.ExtensionContext) {
     provider.refresh()
   })
 
-  context.subscriptions.push(d1, d2, d4, d5, d6, d7, d8, d9, d10, d11, d13, d14, d15, d16)
+  context.subscriptions.push(d1, d2, d4, d5, d6, d7, d8, d9, d10, d11, d13, d14, d15, d16, d17)
 
   // Re-apply the selected server mode when the relevant settings change
   context.subscriptions.push(

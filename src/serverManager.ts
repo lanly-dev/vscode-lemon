@@ -304,6 +304,68 @@ export class ServerManager {
   }
 
   /**
+   * Delete (remove) a downloaded model from disk on the selected server.
+   * If no model name is supplied, the user is prompted to pick one of the
+   * installed models. Asks for confirmation since the action is destructive.
+   */
+  async deleteModel(modelName?: string): Promise<void> {
+    if (!await this.ensureRunning()) return
+    let name = modelName
+
+    if (!name) {
+      try {
+        // Installed models (the classic /v1/models response) — not the full catalog.
+        const models = await this._client.listModels()
+        if (models.length === 0) {
+          showInformationMessage('No downloaded models to remove')
+          return
+        }
+        const items: vscode.QuickPickItem[] = models.map((m) => ({
+          label: m.id,
+          description: getModelLabel(m) ?? m.owned_by ?? ''
+        }))
+        const selected = await showQuickPick(items, {
+          title: 'Select a model to remove',
+          placeHolder: 'Choose a model'
+        })
+        if (!selected) return
+        name = selected.label
+      } catch (err: unknown) {
+        Logger.error('Failed to list models', err)
+        showErrorMessage(`Failed to list models: ${err}`)
+        return
+      }
+    }
+
+    try {
+      const confirm = await window.showWarningMessage(
+        `Remove model '${name}' from disk? This cannot be undone.`,
+        { modal: true },
+        'Remove'
+      )
+      if (confirm !== 'Remove') return
+
+      await window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: `Removing model: ${name}`,
+          cancellable: false
+        },
+        async (progress) => {
+          progress.report({ message: 'Removing...' })
+          await this._client.deleteModel(name!)
+        }
+      )
+      showInformationMessage(`Model '${name}' removed successfully`)
+      return
+    } catch (err: unknown) {
+      Logger.error('Failed to delete model', err)
+      showErrorMessage(`Failed to delete model: ${err}`)
+      return
+    }
+  }
+
+  /**
    * Set the maximum number of concurrently loaded models.
    * Persists the value to the lemon.maxLoadedModels config, and if the
    * embedded server is running, pushes it to the running server immediately.

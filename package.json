@@ -73,6 +73,11 @@
         "icon": "$(run-below)"
       },
       {
+        "command": "lemon.removeModel",
+        "title": "Lemon: Remove Model",
+        "icon": "$(trash)"
+      },
+      {
         "command": "lemon.selectModel",
         "title": "Lemon: Select Active Model"
       },
@@ -176,6 +181,11 @@
           "command": "lemon.unloadModel",
           "when": "view == LEMON_TREEVIEW && (viewItem == LEMOND_MODEL_LOADED || viewItem == LEMOND_LOADED_MODEL)",
           "group": "inline"
+        },
+        {
+          "command": "lemon.removeModel",
+          "when": "view == LEMON_TREEVIEW && (viewItem == LEMOND_MODEL_AVAILABLE || viewItem == LEMOND_MODEL_LOADED || viewItem == LEMOND_LOADED_MODEL)",
+          "group": "2_remove"
         }
       ]
     },
