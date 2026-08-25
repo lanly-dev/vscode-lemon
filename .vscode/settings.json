@@ -14,6 +14,7 @@
     "efix",
     "lanly",
     "lemond",
+    "reranking",
     "Treeview"
   ],
   "editor.rulers": [

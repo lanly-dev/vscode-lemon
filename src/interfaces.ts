@@ -50,6 +50,18 @@ export interface ChatCompletionResponse {
   }
 }
 
+/**
+ * Number of pinned models per category, as reported by `/v1/health`.
+ */
+export interface PinnedModels {
+  classification?: number
+  embedding?: number
+  image?: number
+  llm?: number
+  reranking?: number
+  transcription?: number
+  tts?: number
+}
 /** Health response from `/v1/health`. */
 export interface HealthResponse {
   model_loaded: string | null
@@ -60,6 +72,7 @@ export interface HealthResponse {
     backend_url?: string
   }>
   max_loaded_models?: number
+  pinned_models?: PinnedModels
 }
 
 /** Information about a GitHub release. */

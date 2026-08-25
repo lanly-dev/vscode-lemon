@@ -83,6 +83,7 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
   private getChildrenForElement(element: TreeItem): TreeItem[] {
     if (element.contextValue === 'LEMON_SERVER_HEADER') return this.getServerChildren(this._activeServer)
     if (element.contextValue === 'LEMOND_LOADED_HEADER') return this.getLoadedModelChildren(element)
+    if (element.contextValue === 'LEMOND_PINNED_HEADER') return this.getPinnedModelChildren(element)
     if (element.contextValue === 'LEMOND_MODELS_HEADER') return this.getModelChildren(element)
     return []
   }
@@ -129,6 +130,18 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
       items.push(maxModelsItem)
     }
 
+    // Pinned models section
+    const pinnedModels = this._activeServer?.health?.pinned_models
+    const pinnedEntries = pinnedModels ? Object.entries(pinnedModels) : []
+    const pinnedCount = pinnedEntries.reduce((sum, [, count]) => sum + (count ?? 0), 0)
+
+    const pinnedHeader = new TreeItem(`Pinned Models (${pinnedCount})`, Expanded)
+    const pinnedColor = pinnedCount > 0 ? new vscode.ThemeColor('charts.blue') : undefined
+    pinnedHeader.iconPath = new vscode.ThemeIcon('pin', pinnedColor)
+    pinnedHeader.contextValue = 'LEMOND_PINNED_HEADER'
+    pinnedHeader.tooltip = this._activeServer?.id
+    items.push(pinnedHeader)
+
     // Error message if any
     if (server.error) {
       const errorItem = new TreeItem(`Error: ${server.error}`, None)
@@ -155,6 +168,29 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
       item.tooltip = `Model: ${model.model_name}\nBusy: ${model.is_busy}\nStreaming: ${model.is_streaming}`
       item.contextValue = 'LEMOND_LOADED_MODEL'
       item.description = model.is_busy ? 'busy' : 'idle'
+      return item
+    })
+  }
+
+  private getPinnedModelChildren(element: vscode.TreeItem): TreeItem[] {
+    const server = this.findServerByTooltip(element.tooltip)
+    const pinned = server?.health?.pinned_models
+    if (!pinned) return []
+
+    const entries = Object.entries(pinned)
+    if (entries.length === 0) {
+      const noItem = new TreeItem('No pinned models', None)
+      noItem.iconPath = new vscode.ThemeIcon('circle-slash', new vscode.ThemeColor('charts.gray'))
+      return [noItem]
+    }
+
+    return entries.map(([category, count]) => {
+      const value = count ?? 0
+      const item = new TreeItem(category, None)
+      item.description = String(value)
+      const color = value > 0 ? new vscode.ThemeColor('charts.green') : new vscode.ThemeColor('charts.gray')
+      item.iconPath = new vscode.ThemeIcon('pinned', color)
+      item.tooltip = `${category}: ${value} pinned`
       return item
     })
   }
