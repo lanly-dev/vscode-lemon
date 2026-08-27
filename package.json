@@ -78,6 +78,11 @@
         "icon": "$(trash)"
       },
       {
+        "command": "lemon.retryModel",
+        "title": "Lemon: Retry Model Download",
+        "icon": "$(refresh)"
+      },
+      {
         "command": "lemon.selectModel",
         "title": "Lemon: Select Active Model"
       },
@@ -185,6 +190,16 @@
         {
           "command": "lemon.removeModel",
           "when": "view == LEMON_TREEVIEW && (viewItem == LEMOND_MODEL_AVAILABLE || viewItem == LEMOND_MODEL_LOADED || viewItem == LEMOND_LOADED_MODEL)",
+          "group": "2_remove"
+        },
+        {
+          "command": "lemon.retryModel",
+          "when": "view == LEMON_TREEVIEW && viewItem == LEMOND_PARTIAL_MODEL",
+          "group": "inline"
+        },
+        {
+          "command": "lemon.removeModel",
+          "when": "view == LEMON_TREEVIEW && viewItem == LEMOND_PARTIAL_MODEL",
           "group": "2_remove"
         }
       ]

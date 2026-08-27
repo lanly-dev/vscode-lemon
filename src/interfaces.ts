@@ -120,6 +120,20 @@ export interface ReleaseAsset {
   size: number
 }
 
+/** Live progress of an in-progress model download (surface in the tree view). */
+export interface DownloadProgress {
+  /** Model being downloaded. */
+  modelId: string
+  /** Percent complete (0-100), or -1 when the server doesn't report a ratio. */
+  pct: number
+  /** Bytes downloaded so far, when reported by the server. */
+  written?: number
+  /** Total bytes to download, when reported by the server. */
+  total?: number
+  /** Human-friendly progress text from the server (fallback when pct is unknown). */
+  message: string
+}
+
 /** A server instance shown in the tree view. */
 export interface ServerInstance {
   id: string

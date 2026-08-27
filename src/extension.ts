@@ -16,6 +16,73 @@ export async function activate(context: vscode.ExtensionContext) {
   const chatParticipant = new ChatParticipant(context, serverManager)
   const provider = await createTreeView(serverManager)
 
+  /**
+   * Pull a specific model by id, showing live progress in a cancellable popup
+   * and tracking incomplete downloads in the tree view on cancel/failure.
+   */
+  const startPull = async (modelId: string): Promise<void> => {
+    if (!await serverManager.ensureRunning()) return
+
+    const client = serverManager.client
+
+    // Re-pulling a known-incomplete model: drop its stale "incomplete" marker
+    // while it's actively downloading; it will be re-marked if it fails again.
+    provider.clearPartial(modelId)
+
+    // Show a live "Downloading Models" entry in the tree view for this model.
+    provider.beginDownload(modelId)
+
+    const abortController = new AbortController()
+
+    await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: `Pulling model: ${modelId}`,
+        cancellable: true
+      },
+      async (progress, token) => {
+        // Cancel the underlying HTTP request when the user dismisses the popup.
+        token.onCancellationRequested(() => abortController.abort())
+        let lastPct = 0
+
+        try {
+          await client.pullModelStream(
+            modelId,
+            (p) => {
+              if (p.pct >= 0) lastPct = p.pct
+              // Show the % number live in the popup.
+              const pctText = p.pct >= 0 ? `${Math.round(p.pct)}%` : ''
+              progress.report({ message: [pctText, p.message].filter(Boolean).join(' ') || 'Downloading...' })
+              // Tree updates are throttled to every 5% inside updateDownload.
+              provider.updateDownload(modelId, p.pct, p.message, p.written, p.total)
+            },
+            abortController.signal
+          )
+          provider.clearPartial(modelId)
+          provider.endDownload(modelId)
+          provider.refresh()
+          vscode.window.showInformationMessage(`Model '${modelId}' pulled successfully`)
+        } catch (err: unknown) {
+          // Remove from the live list, then keep it as an incomplete download.
+          provider.endDownload(modelId)
+          if (token.isCancellationRequested) {
+            Logger.warn(`Model download cancelled: ${modelId}`)
+            provider.markPartial(modelId, lastPct)
+            provider.refresh()
+            vscode.window.showInformationMessage(
+              `Cancelled pulling '${modelId}'. The partial download is now listed under "Incomplete Downloads".`
+            )
+          } else {
+            Logger.error('Failed to pull model', err)
+            provider.markPartial(modelId, lastPct)
+            provider.refresh()
+            vscode.window.showErrorMessage(`Failed to pull model: ${err}`)
+          }
+        }
+      }
+    )
+  }
+
   const d1 = rc('lemon.startServer', async () => {
     await serverManager.start()
     provider.refresh()
@@ -83,28 +150,7 @@ export async function activate(context: vscode.ExtensionContext) {
     })
 
     if (!selected) return
-    const modelName = selected.label
-    const client = serverManager.client
-    await vscode.window.withProgress(
-      {
-        location: vscode.ProgressLocation.Notification,
-        title: `Pulling model: ${modelName}`,
-        cancellable: false
-      },
-      async (progress) => {
-        progress.report({ message: 'Downloading model...' })
-        try {
-          await client.pullModel(modelName, (msg: string) => {
-            progress.report({ message: msg })
-          })
-          vscode.window.showInformationMessage(`Model '${modelName}' pulled successfully`)
-          provider.refresh()
-        } catch (err: unknown) {
-          Logger.error('Failed to pull model', err)
-          vscode.window.showErrorMessage(`Failed to pull model: ${err}`)
-        }
-      }
-    )
+    await startPull(selected.label)
   })
 
   const d8 = rc('lemon.loadModel', async (item?: { modelId?: string }) => {
@@ -121,7 +167,13 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const d17 = rc('lemon.removeModel', async (item?: { modelId?: string }) => {
     await serverManager.deleteModel(item?.modelId)
+    if (item?.modelId) provider.clearPartial(item.modelId)
     provider.refresh()
+  })
+
+  const d18 = rc('lemon.retryModel', async (item?: { modelId?: string }) => {
+    if (!item?.modelId) return
+    await startPull(item.modelId)
   })
 
   const d10 = rc('lemon.selectModel', async () => {
@@ -230,7 +282,7 @@ export async function activate(context: vscode.ExtensionContext) {
     provider.refresh()
   })
 
-  context.subscriptions.push(d1, d2, d4, d5, d6, d7, d8, d9, d10, d11, d13, d14, d15, d16, d17)
+  context.subscriptions.push(d1, d2, d4, d5, d6, d7, d8, d9, d10, d11, d13, d14, d15, d16, d17, d18)
 
   // Re-apply the selected server mode when the relevant settings change
   context.subscriptions.push(

@@ -8,6 +8,15 @@ import type {
   LemonadeModel
 } from './interfaces'
 
+/** A single progress event emitted by the streaming `/v1/pull` endpoint. */
+interface PullStreamEvent {
+  status?: string
+  response?: string
+  progress?: number
+  bytes_written?: number
+  bytes_total?: number
+}
+
 /**
  * HTTP client for the Lemonade Server API.
  * Communicates with the local Lemonade Server using OpenAI-compatible endpoints.
@@ -149,6 +158,127 @@ export class LemonadeClient {
 
     if (onProgress) onProgress('Model pulled successfully')
     Logger.info(`Model pulled: ${modelName}`)
+  }
+
+  /** Pull (download) a model using the streaming `/v1/pull` endpoint so callers
+   * can display live download progress. `onProgress` is called for each event
+   * with a percent (0-100, or -1 when the server doesn't report a ratio) and a
+   * human-friendly message.
+   */
+  async pullModelStream(
+    modelName: string,
+    onProgress: (progress: { pct: number, written?: number, total?: number, message: string }) => void,
+    signal?: AbortSignal
+  ): Promise<void> {
+    Logger.info(`Pulling model (streaming): ${modelName}`)
+    const body = JSON.stringify({ model_name: modelName, stream: true })
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(body).toString()
+    }
+
+    return new Promise((resolve, reject) => {
+      const req = http.request(
+        `${this.baseUrl}/v1/pull`,
+        { method: 'POST', headers },
+        (res) => {
+          if (res.statusCode !== 200) {
+            let errorData = ''
+            res.on('data', (chunk: Buffer) => { errorData += chunk.toString() })
+            res.on('end', () => {
+              reject(new Error(`Failed to pull model: ${res.statusCode} ${errorData}`))
+            })
+            return
+          }
+
+          let buffer = ''
+          const handleLine = (line: string): void => {
+            const trimmed = line.trim()
+            if (!trimmed) return
+            const jsonStr = trimmed.startsWith('data: ') ? trimmed.slice(6) : trimmed
+            if (jsonStr === '[DONE]') {
+              resolve()
+              return
+            }
+            const { status, pct, written, total, message } = this.parsePullEvent(jsonStr)
+            if (status === 'error') {
+              reject(new Error(`Failed to pull model: ${message || modelName}`))
+              return
+            }
+            if (pct >= 0) onProgress({ pct, written, total, message })
+            else if (status !== 'done') onProgress({ pct: -1, written, total, message })
+            if (status === 'done') resolve()
+          }
+
+          res.on('data', (chunk: Buffer) => {
+            buffer += chunk.toString()
+            const lines = buffer.split('\n')
+            buffer = lines.pop() ?? ''
+            for (const line of lines) handleLine(line)
+          })
+
+          res.on('end', () => {
+            if (buffer.trim()) handleLine(buffer)
+            resolve()
+          })
+
+          res.on('error', (err) => {
+            reject(new Error(`Stream error: ${err.message}`))
+          })
+        }
+      )
+
+      req.on('error', (err) => {
+        reject(new Error(`Request error: ${err.message}`))
+      })
+
+      if (signal) {
+        signal.addEventListener('abort', () => {
+          req.destroy()
+          reject(new Error('Model download cancelled'))
+        }, { once: true })
+      }
+
+      req.write(body)
+      req.end()
+    })
+  }
+
+  /** Parse a single `/v1/pull` streaming event into a progress update. */
+  private parsePullEvent(line: string):
+    { status?: string, pct: number, written?: number, total?: number, message: string } {
+    let parsed: PullStreamEvent
+    try {
+      parsed = JSON.parse(line) as PullStreamEvent
+    } catch {
+      return { pct: -1, message: line }
+    }
+
+    let pct = -1
+    const { progress, bytes_written, bytes_total } = parsed
+    if (typeof progress === 'number') {
+      // Tolerate both a 0-1 fraction and a 0-100 percentage.
+      pct = progress <= 1 ? progress * 100 : progress
+    } else if (
+      typeof bytes_written === 'number'
+      && typeof bytes_total === 'number'
+      && bytes_total > 0
+    ) {
+      const ratio = bytes_written / bytes_total
+      pct = ratio * 100
+    }
+    if (pct >= 0) pct = Math.min(100, Math.max(0, pct))
+
+    const message = typeof parsed.response === 'string' && parsed.response
+      ? parsed.response
+      : (parsed.status ?? '')
+    return {
+      status: parsed.status,
+      pct,
+      written: typeof bytes_written === 'number' ? bytes_written : undefined,
+      total: typeof bytes_total === 'number' ? bytes_total : undefined,
+      message
+    }
   }
 
   async deleteModel(modelName: string): Promise<void> {
