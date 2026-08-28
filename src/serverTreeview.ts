@@ -11,6 +11,9 @@ import { formatBytes } from './utils'
 
 import type { DownloadProgress, ServerInstance } from './interfaces'
 
+/** Storage key used to persist incomplete downloads across sessions. */
+const PARTIALS_STORAGE_KEY = 'partialDownloads'
+
 /**
  * Tree data provider for the Servers view.
  * Shows both the standalone Lemonade app and the lemon app in a single tree.
@@ -27,11 +30,21 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
   /** Partial (incomplete) downloads, keyed by model id. */
   private _partials = new Map<string, DownloadProgress>()
 
-  constructor(private serverManager: ServerManager) {
+  constructor(private context: vscode.ExtensionContext, private serverManager: ServerManager) {
     // Refresh whenever another part of the extension fires the shared event,
     // or when the underlying server status changes.
     refreshEvents.onDidRequestRefresh(() => this.refresh())
     serverManager.onStatusChange(() => this.refresh())
+
+    // Restore any incomplete downloads saved from a previous session.
+    const saved = this.context.workspaceState.get<Array<[string, number]>>(PARTIALS_STORAGE_KEY, [])
+    for (const [modelId, pct] of saved) {
+      this._partials.set(modelId, {
+        modelId,
+        pct,
+        message: pct >= 0 ? `${Math.round(pct)}% downloaded` : 'download incomplete'
+      })
+    }
   }
 
   refresh(): void {
@@ -75,12 +88,23 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
       pct,
       message: pct >= 0 ? `${Math.round(pct)}% downloaded` : 'download incomplete'
     })
+    void this.persistPartials()
     this.refresh()
   }
 
   /** Forget an incomplete download (e.g. after a successful re-pull or remove). */
   clearPartial(modelId: string): void {
-    if (this._partials.delete(modelId)) this.refresh()
+    if (this._partials.delete(modelId)) {
+      void this.persistPartials()
+      this.refresh()
+    }
+  }
+
+  /** Persist the current incomplete downloads so they survive a reload. */
+  private async persistPartials(): Promise<void> {
+    const entries: Array<[string, number]> = []
+    for (const [modelId, partial] of this._partials) entries.push([modelId, partial.pct])
+    await this.context.workspaceState.update(PARTIALS_STORAGE_KEY, entries)
   }
 
   getTreeItem(element: vscode.TreeItem): vscode.TreeItem {

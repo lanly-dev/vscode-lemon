@@ -16,7 +16,7 @@ export async function activate(context: vscode.ExtensionContext) {
   // Initialize managers
   const binaryManager = new BinaryManager(context)
   const serverManager = new ServerManager(binaryManager)
-  const provider = await createTreeView(serverManager)
+  const provider = await createTreeView(context, serverManager)
   const modelManager = new ModelManager(serverManager, provider)
   const chatParticipant = new ChatParticipant(context, serverManager)
 
@@ -90,8 +90,8 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 // Register tree view for Lemonade status
-async function createTreeView(serverManager: ServerManager) {
-  const provider = new ServerViewProvider(serverManager)
+async function createTreeView(context: vscode.ExtensionContext, serverManager: ServerManager) {
+  const provider = new ServerViewProvider(context, serverManager)
   vscode.window.createTreeView('LEMON_TREEVIEW', {
     treeDataProvider: provider,
     showCollapseAll: true
