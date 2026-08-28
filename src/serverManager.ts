@@ -14,6 +14,7 @@ import { LemonadeClient } from './lemonadeClient'
 import { Logger } from './logger'
 import { ServerStatus, TargetServer, type ServerInstance } from './interfaces'
 import { getModelLabel } from './modelLabel'
+import { refreshEvents } from './events'
 
 /**
  * Manages the Lemonade Server process lifecycle.
@@ -575,6 +576,7 @@ export class ServerManager {
         this.setSelectedServer(customUrl, 'Custom Server')
         this.setStatus(ServerStatus.RUNNING)
         showInformationMessage(`Connected to custom Lemonade Server at ${customUrl}`)
+        refreshEvents.fire()
         return true
       } catch {
         this.setStatus(ServerStatus.ERROR)
@@ -604,6 +606,7 @@ export class ServerManager {
         this.setSelectedServer(`http://localhost:${this._standalonePort}`, 'Standalone Lemonade')
         this.setStatus(ServerStatus.RUNNING)
         showInformationMessage(`Connected to Standalone Lemonade at http://localhost:${this._standalonePort}`)
+        refreshEvents.fire()
         return true
       }
       this.setStatus(ServerStatus.ERROR)
@@ -640,6 +643,8 @@ export class ServerManager {
         showInformationMessage(
           `Connected to existing embedded Lemonade Server at http://localhost:${this._embedPort}`
         )
+
+        refreshEvents.fire()
         return true
       }
 
@@ -739,6 +744,7 @@ export class ServerManager {
       this.setStatus(ServerStatus.RUNNING)
       Logger.info('Lemonade Server is ready')
       showInformationMessage('Lemonade Server started successfully')
+      refreshEvents.fire()
       return true
     }
 

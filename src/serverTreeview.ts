@@ -3,6 +3,7 @@ import * as vscode from 'vscode'
 import { TreeDataProvider, TreeItem, TreeItemCollapsibleState } from 'vscode'
 const { None, Expanded } = TreeItemCollapsibleState
 
+import { refreshEvents } from './events'
 import { ServerManager } from './serverManager'
 import { ServerStatus } from './interfaces'
 import { getModelLabel } from './modelLabel'
@@ -38,6 +39,9 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
   private _partials = new Map<string, DownloadProgress>()
 
   constructor(private serverManager: ServerManager) {
+    // Refresh whenever another part of the extension fires the shared event,
+    // or when the underlying server status changes.
+    refreshEvents.onDidRequestRefresh(() => this.refresh())
     serverManager.onStatusChange(() => this.refresh())
   }
 

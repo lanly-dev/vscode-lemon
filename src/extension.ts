@@ -1,6 +1,7 @@
 import * as vscode from 'vscode'
 import { BinaryManager } from './binaryManager'
 import { ChatParticipant } from './chatParticipant'
+import { refreshEvents } from './events'
 import type { LemonadeModel } from './interfaces'
 import { Logger } from './logger'
 import { getModelLabel } from './modelLabel'
@@ -60,7 +61,7 @@ export async function activate(context: vscode.ExtensionContext) {
           )
           provider.clearPartial(modelId)
           provider.endDownload(modelId)
-          provider.refresh()
+          refreshEvents.fire()
           vscode.window.showInformationMessage(`Model '${modelId}' pulled successfully`)
         } catch (err: unknown) {
           // Remove from the live list, then keep it as an incomplete download.
@@ -68,14 +69,14 @@ export async function activate(context: vscode.ExtensionContext) {
           if (token.isCancellationRequested) {
             Logger.warn(`Model download cancelled: ${modelId}`)
             provider.markPartial(modelId, lastPct)
-            provider.refresh()
+            refreshEvents.fire()
             vscode.window.showInformationMessage(
               `Cancelled pulling '${modelId}'. The partial download is now listed under "Incomplete Downloads".`
             )
           } else {
             Logger.error('Failed to pull model', err)
             provider.markPartial(modelId, lastPct)
-            provider.refresh()
+            refreshEvents.fire()
             vscode.window.showErrorMessage(`Failed to pull model: ${err}`)
           }
         }
@@ -84,13 +85,13 @@ export async function activate(context: vscode.ExtensionContext) {
   }
 
   const d1 = rc('lemon.startServer', async () => {
+    // start() fires refreshEvents itself whenever it updates the server state.
     await serverManager.start()
-    provider.refresh()
   })
 
   const d2 = rc('lemon.stopServer', async () => {
     await serverManager.stop()
-    provider.refresh()
+    refreshEvents.fire()
   })
 
 
@@ -157,18 +158,18 @@ export async function activate(context: vscode.ExtensionContext) {
     await serverManager.loadModel(item?.modelId)
     // Need to look into how to update the selected model in the chat participant after loading a model
     // chatParticipant.setSelectedModel(modelName)
-    provider.refresh()
+    refreshEvents.fire()
   })
 
   const d9 = rc('lemon.unloadModel', async (item?: { modelId?: string }) => {
     await serverManager.unloadModel(item?.modelId)
-    provider.refresh()
+    refreshEvents.fire()
   })
 
   const d17 = rc('lemon.removeModel', async (item?: { modelId?: string }) => {
     await serverManager.deleteModel(item?.modelId)
     if (item?.modelId) provider.clearPartial(item.modelId)
-    provider.refresh()
+    refreshEvents.fire()
   })
 
   const d18 = rc('lemon.retryModel', async (item?: { modelId?: string }) => {
@@ -183,11 +184,11 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.window.showInformationMessage(`Selected model: ${selected}`)
   })
 
-  const d11 = rc('lemon.refreshServer', () => provider.refresh())
+  const d11 = rc('lemon.refreshServer', () => refreshEvents.fire())
 
   const d14 = rc('lemon.selectServer', async () => {
     await serverManager.selectServer()
-    provider.refresh()
+    refreshEvents.fire()
   })
 
   const d13 = rc('lemon.setMaxLoadedModels', async () => {
@@ -214,7 +215,7 @@ export async function activate(context: vscode.ExtensionContext) {
     try {
       await serverManager.setMaxLoadedModels(n)
       vscode.window.showInformationMessage(`Max loaded models set to ${n === -1 ? 'unlimited' : n}`)
-      provider.refresh()
+      refreshEvents.fire()
     } catch (err: unknown) {
       Logger.error('Failed to set max loaded models', err)
       vscode.window.showErrorMessage(`Failed to set max loaded models: ${err}`)
@@ -279,7 +280,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // applyConfiguredServerMode + refresh are handled onDidChangeConfiguration,
     // but refresh explicitly so the new URL/port is reflected immediately.
-    provider.refresh()
+    refreshEvents.fire()
   })
 
   context.subscriptions.push(d1, d2, d4, d5, d6, d7, d8, d9, d10, d11, d13, d14, d15, d16, d17, d18)
@@ -301,7 +302,7 @@ export async function activate(context: vscode.ExtensionContext) {
         const newMode = config.get<string>('targetServer', 'standalone')
         if (newMode !== 'embedded') await serverManager.stop()
 
-        provider.refresh()
+        refreshEvents.fire()
       }
     })
   )
@@ -315,7 +316,7 @@ async function createTreeView(serverManager: ServerManager) {
     treeDataProvider: provider,
     showCollapseAll: true
   })
-  await provider.refresh()
+  await refreshEvents.fire()
   return provider
 }
 
