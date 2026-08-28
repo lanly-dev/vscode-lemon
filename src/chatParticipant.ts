@@ -1,8 +1,8 @@
 import * as vscode from 'vscode'
 
-import { ModelManager } from './modelManager'
 import { LemonadeClient } from './lemonadeClient'
 import { Logger } from './logger'
+import { ModelManager } from './modelManager'
 import { ServerManager } from './serverManager'
 import { ServerStatus } from './interfaces'
 

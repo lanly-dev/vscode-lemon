@@ -3,10 +3,12 @@ import * as vscode from 'vscode'
 import { BinaryManager } from './binaryManager'
 import { ChatParticipant } from './chatParticipant'
 import { Logger } from './logger'
-import { refreshEvents } from './events'
 import { ModelManager } from './modelManager'
 import { ServerManager } from './serverManager'
 import { ServerViewProvider } from './serverTreeview'
+
+import { openSetting } from './utils'
+import { refreshEvents } from './events'
 
 export async function activate(context: vscode.ExtensionContext) {
   const rc = vscode.commands.registerCommand
@@ -20,27 +22,12 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const d1 = rc('lemon.startServer', serverManager.start)
   const d2 = rc('lemon.stopServer', serverManager.stop)
-
   const d4 = rc('lemon.downloadBinary', binaryManager.downloadBinary)
   const d5 = rc('lemon.openChat', ChatParticipant.openChat)
-
-  const d6 = rc('lemon.openSettings', () => {
-    vscode.commands.executeCommand('workbench.action.openSettings', '@ext:lanly-dev.lemon')
-  })
-
+  const d6 = rc('lemon.openSettings', openSetting)
   const d7 = rc('lemon.pullModel', () => modelManager.pullModel())
-
-  const d8 = rc('lemon.loadModel', async (item: { modelId: string }) => {
-    await modelManager.loadModel(item.modelId)
-    // Need to look into how to update the selected model in the chat participant after loading a model
-    // chatParticipant.setSelectedModel(modelName)
-    refreshEvents.fire()
-  })
-
-  const d9 = rc('lemon.unloadModel', async (item: { modelId: string }) => {
-    await modelManager.unloadModel(item.modelId)
-    refreshEvents.fire()
-  })
+  const d8 = rc('lemon.loadModel', (item: { modelId: string }) => modelManager.loadModel(item.modelId))
+  const d9 = rc('lemon.unloadModel', (item: { modelId: string }) => modelManager.unloadModel(item.modelId))
 
   const d17 = rc('lemon.removeModel', async (item: { modelId: string }) => {
     await modelManager.deleteModel(item.modelId)
@@ -74,7 +61,7 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.env.openExternal(vscode.Uri.parse(url))
   })
 
-  const d16 = rc('lemon.editServerPort', () => serverManager.editServerPort())
+  const d16 = rc('lemon.editServerPort', serverManager.editServerPort)
 
   context.subscriptions.push(d1, d2, d4, d5, d6, d7, d8, d9, d10, d11, d13, d14, d15, d16, d17, d18)
 

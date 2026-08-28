@@ -1,7 +1,6 @@
 import { ConfigurationTarget, ProgressLocation, QuickPickItem } from 'vscode'
 import { window, workspace } from 'vscode'
 
-import { refreshEvents } from './events'
 import { Logger } from './logger'
 import { ServerManager } from './serverManager'
 import { LemonadeModel, ServerStatus } from './interfaces'
@@ -58,6 +57,7 @@ export class ModelManager {
       Logger.error('Failed to load model', err)
       showErrorMessage(`Failed to load model: ${err}`)
     }
+    this.treeViewProvider.refresh()
   }
 
   async unloadModel(modelName: string): Promise<void> {
@@ -81,6 +81,7 @@ export class ModelManager {
       Logger.error('Failed to unload model', err)
       showErrorMessage(`Failed to unload model: ${err}`)
     }
+    this.treeViewProvider.refresh()
   }
 
   /**
@@ -151,7 +152,7 @@ export class ModelManager {
       }
 
       showInformationMessage(`Max loaded models set to ${n === -1 ? 'unlimited' : n}`)
-      refreshEvents.fire()
+      this.treeViewProvider.refresh()
     } catch (err: unknown) {
       Logger.error('Failed to set max loaded models', err)
       showErrorMessage(`Failed to set max loaded models: ${err}`)
@@ -283,7 +284,7 @@ export class ModelManager {
           )
           this.treeViewProvider.clearPartial(modelId)
           this.treeViewProvider.endDownload(modelId)
-          refreshEvents.fire()
+          this.treeViewProvider.refresh()
           showInformationMessage(`Model '${modelId}' pulled successfully`)
         } catch (err: unknown) {
           // Remove from the live list, then keep it as an incomplete download.
@@ -291,14 +292,14 @@ export class ModelManager {
           if (token.isCancellationRequested) {
             Logger.warn(`Model download cancelled: ${modelId}`)
             this.treeViewProvider.markPartial(modelId, lastPct)
-            refreshEvents.fire()
+            this.treeViewProvider.refresh()
             showInformationMessage(
               `Cancelled pulling '${modelId}'. The partial download is now listed under "Incomplete Downloads".`
             )
           } else {
             Logger.error('Failed to pull model', err)
             this.treeViewProvider.markPartial(modelId, lastPct)
-            refreshEvents.fire()
+            this.treeViewProvider.refresh()
             showErrorMessage(`Failed to pull model: ${err}`)
           }
         }

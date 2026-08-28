@@ -1,3 +1,5 @@
+import * as vscode from 'vscode'
+
 /** Format a byte count as a human-readable size (e.g. 1.2 GB). */
 export function formatBytes(value: number): string {
   const units = ['B', 'KB', 'MB', 'GB', 'TB']
@@ -8,4 +10,8 @@ export function formatBytes(value: number): string {
     unit++
   }
   return `${n.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`
+}
+
+export function openSetting(): void {
+  vscode.commands.executeCommand('workbench.action.openSettings', '@ext:lanly-dev.lemon')
 }
