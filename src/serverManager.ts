@@ -730,12 +730,14 @@ export class ServerManager {
       this._usingExistingServer = false
       this.setStatus(ServerStatus.STOPPED)
       showInformationMessage('Disconnected from Lemonade Server')
+      refreshEvents.fire()
       return
     }
 
     if (!this.process) {
       Logger.info('Server is not running')
       this.setStatus(ServerStatus.STOPPED)
+      refreshEvents.fire()
       return
     }
 
@@ -745,6 +747,7 @@ export class ServerManager {
     try {
       await this.client.unloadAllModels()
     } catch {
+      Logger.warn('Failed to unload all models before stopping the server')
       // Ignore errors, we're shutting down anyway
     }
 
@@ -762,6 +765,7 @@ export class ServerManager {
     this.process = null
     this.setStatus(ServerStatus.STOPPED)
     Logger.info('Lemonade Server stopped')
+    refreshEvents.fire()
     showInformationMessage('Lemonade Server stopped')
   }
 

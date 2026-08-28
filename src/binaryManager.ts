@@ -172,7 +172,7 @@ export class BinaryManager {
   }
 
   /** Download and install the Lemonade Server binary. */
-  async downloadBinary(): Promise<string> {
+  async downloadBinary(): Promise<void> {
     Logger.info('Fetching latest release...')
 
     const release = await this.getLatestRelease()
@@ -184,7 +184,9 @@ export class BinaryManager {
 
     if (!asset) {
       const msg = `Could not find asset '${assetName}' in release ${release.tag_name}`
-      throw new Error(msg)
+      Logger.error(msg)
+      vscode.window.showErrorMessage(msg)
+      return
     }
 
     // Ensure the binary directory exists
@@ -213,6 +215,7 @@ export class BinaryManager {
     )
 
     Logger.info('Download complete. Extracting...')
+    vscode.window.showInformationMessage('Lemonade Server binary downloaded successfully')
 
     // Extract the archive
     if (assetName.endsWith('.zip')) await this.extractZip(archivePath, this.binaryDir)
@@ -235,7 +238,6 @@ export class BinaryManager {
     fs.writeFileSync(versionFile, version, 'utf8')
 
     Logger.info(`Lemonade Server v${version} installed successfully`)
-    return version
   }
 
   /**

@@ -19,23 +19,10 @@ export async function activate(context: vscode.ExtensionContext) {
   const chatParticipant = new ChatParticipant(context, serverManager)
 
   const d1 = rc('lemon.startServer', serverManager.start)
-  const d2 = rc('lemon.stopServer', async () => {
-    await serverManager.stop()
-    refreshEvents.fire()
-  })
+  const d2 = rc('lemon.stopServer', serverManager.stop)
 
-
-  const d4 = rc('lemon.downloadBinary', async () => {
-    try {
-      await binaryManager.downloadBinary()
-      vscode.window.showInformationMessage('Lemonade Server binary downloaded successfully')
-    } catch (err: unknown) {
-      Logger.error('Failed to download binary', err)
-      vscode.window.showErrorMessage(`Failed to download binary: ${err}`)
-    }
-  })
-
-  const d5 = rc('lemon.openChat', () => ChatParticipant.openChat())
+  const d4 = rc('lemon.downloadBinary', binaryManager.downloadBinary)
+  const d5 = rc('lemon.openChat', ChatParticipant.openChat)
 
   const d6 = rc('lemon.openSettings', () => {
     vscode.commands.executeCommand('workbench.action.openSettings', '@ext:lanly-dev.lemon')
