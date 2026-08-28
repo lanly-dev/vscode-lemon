@@ -5,6 +5,7 @@ import { ChatParticipant } from './chatParticipant'
 import { getModelLabel } from './modelLabel'
 import { Logger } from './logger'
 import { refreshEvents } from './events'
+import { ModelManager } from './modelManager'
 import { ServerManager } from './serverManager'
 import { ServerViewProvider } from './serverTreeview'
 
@@ -16,6 +17,7 @@ export async function activate(context: vscode.ExtensionContext) {
   // Initialize managers
   const binaryManager = new BinaryManager(context)
   const serverManager = new ServerManager(binaryManager)
+  const modelManager = new ModelManager(serverManager)
   const chatParticipant = new ChatParticipant(context, serverManager)
   const provider = await createTreeView(serverManager)
 
@@ -153,19 +155,19 @@ export async function activate(context: vscode.ExtensionContext) {
   })
 
   const d8 = rc('lemon.loadModel', async (item: { modelId: string }) => {
-    await serverManager.loadModel(item.modelId)
+    await modelManager.loadModel(item.modelId)
     // Need to look into how to update the selected model in the chat participant after loading a model
     // chatParticipant.setSelectedModel(modelName)
     refreshEvents.fire()
   })
 
   const d9 = rc('lemon.unloadModel', async (item: { modelId: string }) => {
-    await serverManager.unloadModel(item.modelId)
+    await modelManager.unloadModel(item.modelId)
     refreshEvents.fire()
   })
 
   const d17 = rc('lemon.removeModel', async (item: { modelId: string }) => {
-    await serverManager.deleteModel(item.modelId)
+    await modelManager.deleteModel(item.modelId)
     provider.clearPartial(item.modelId)
     refreshEvents.fire()
   })
@@ -173,7 +175,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const d18 = rc('lemon.retryModel', async (item: { modelId: string }) => startPull(item.modelId))
 
   const d10 = rc('lemon.selectModel', async () => {
-    const selected = await serverManager.selectModel()
+    const selected = await modelManager.selectModel()
     if (!selected) return
     chatParticipant.setSelectedModel(selected)
     vscode.window.showInformationMessage(`Selected model: ${selected}`)
@@ -208,7 +210,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const n = Number(value)
     try {
-      await serverManager.setMaxLoadedModels(n)
+      await modelManager.setMaxLoadedModels(n)
       vscode.window.showInformationMessage(`Max loaded models set to ${n === -1 ? 'unlimited' : n}`)
       refreshEvents.fire()
     } catch (err: unknown) {

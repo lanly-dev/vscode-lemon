@@ -5,12 +5,11 @@ const execAsync = promisify(exec)
 import * as fs from 'fs'
 import * as path from 'path'
 
-import { ConfigurationTarget, ExtensionContext, ProgressLocation, QuickPickItem, WorkspaceConfiguration } from 'vscode'
+import { ConfigurationTarget, ExtensionContext, QuickPickItem, WorkspaceConfiguration } from 'vscode'
 import { window, workspace } from 'vscode'
-const { showErrorMessage, showInformationMessage, showInputBox, showQuickPick, showWarningMessage } = window
+const { showErrorMessage, showInformationMessage, showInputBox, showQuickPick } = window
 
 import { BinaryManager } from './binaryManager'
-import { getModelLabel } from './modelLabel'
 import { LemonadeClient } from './lemonadeClient'
 import { Logger } from './logger'
 import { refreshEvents } from './events'
@@ -210,134 +209,6 @@ export class ServerManager {
       }
     } catch (err) {
       return null
-    }
-  }
-
-  async loadModel(modelName: string): Promise<void> {
-    if (!await this.ensureRunning()) return undefined
-
-    try {
-      await window.withProgress(
-        {
-          location: ProgressLocation.Notification,
-          title: `Loading model: ${modelName}`,
-          cancellable: false
-        },
-        async (progress) => {
-          progress.report({ message: 'Loading...' })
-          await this._client.loadModel(modelName)
-        }
-      )
-      showInformationMessage(`Model '${modelName}' loaded successfully`)
-      return
-    } catch (err: unknown) {
-      Logger.error('Failed to load model', err)
-      showErrorMessage(`Failed to load model: ${err}`)
-    }
-  }
-
-  async unloadModel(modelName: string): Promise<void> {
-    if (!await this.ensureRunning()) return
-    const name = modelName
-
-    try {
-      await window.withProgress(
-        {
-          location: ProgressLocation.Notification,
-          title: `Unloading model: ${name}`,
-          cancellable: false
-        },
-        async (progress) => {
-          progress.report({ message: 'Unloading...' })
-          await this._client.unloadModel(name)
-        }
-      )
-      showInformationMessage(`Model '${name}' unloaded successfully`)
-    } catch (err: unknown) {
-      Logger.error('Failed to unload model', err)
-      showErrorMessage(`Failed to unload model: ${err}`)
-    }
-  }
-
-  /**
-   * Delete a downloaded model from disk on the selected server.
-   */
-  async deleteModel(modelName: string): Promise<void> {
-    if (!await this.ensureRunning()) return
-
-    try {
-      const confirm = await window.showWarningMessage(
-        `Delete model '${modelName}' from disk? This cannot be undone.`,
-        { modal: true },
-        'Delete'
-      )
-      if (confirm !== 'Delete') return
-
-      await window.withProgress(
-        {
-          location: ProgressLocation.Notification,
-          title: `Deleting model: ${modelName}`,
-          cancellable: false
-        },
-        async (progress) => {
-          progress.report({ message: 'Deleting...' })
-          await this._client.deleteModel(modelName)
-        }
-      )
-      showInformationMessage(`Model '${modelName}' deleted successfully`)
-    } catch (err: unknown) {
-      Logger.error('Failed to delete model', err)
-      showErrorMessage(`Failed to delete model: ${err}`)
-    }
-  }
-
-  /**
-   * Set the maximum number of concurrently loaded models.
-   * Persists the value to the lemon.maxLoadedModels config, and if the
-   * embedded server is running, pushes it to the running server immediately.
-   * Still fuzzy on how this interacts with currently loaded models.
-   */
-  async setMaxLoadedModels(value: number): Promise<void> {
-    const config = workspace.getConfiguration('lemon')
-    await config.update('maxLoadedModels', value, ConfigurationTarget.Global)
-    Logger.info(`Set lemon.maxLoadedModels to ${value}`)
-
-    if (this._status !== ServerStatus.RUNNING) return
-    await this._client.updateConfig({ max_loaded_models: value })
-    Logger.info('Pushed max_loaded_models to running server')
-  }
-
-  /**
-   * Select an active model for chat.
-   * Prompts the user to pick a model from the available ones.
-   * Resolves to the selected model name, or undefined if cancelled/error.
-   */
-  async selectModel(): Promise<string | undefined> {
-    if (!await this.ensureRunning()) return undefined
-    return this.promptForModel('Select active model for chat')
-  }
-
-  /** Show a quick pick of the available models and return the selected model name. */
-  private async promptForModel(title: string): Promise<string | undefined> {
-    try {
-      const models = await this._client.listModels()
-      if (models.length === 0) {
-        showWarningMessage('No models available. Pull a model first.')
-        return undefined
-      }
-      const items: QuickPickItem[] = models.map((m) => ({
-        label: m.id,
-        description: getModelLabel(m) ?? m.owned_by ?? ''
-      }))
-      const selected = await showQuickPick(items, {
-        title,
-        placeHolder: 'Choose a model'
-      })
-      return selected?.label
-    } catch (err: unknown) {
-      Logger.error('Failed to list models', err)
-      showErrorMessage(`Failed to list models: ${err}`)
-      return undefined
     }
   }
 
