@@ -1,12 +1,12 @@
 import * as vscode from 'vscode'
 import { BinaryManager } from './binaryManager'
 import { ChatParticipant } from './chatParticipant'
-import { refreshEvents } from './events'
-import type { LemonadeModel } from './interfaces'
-import { Logger } from './logger'
 import { getModelLabel } from './modelLabel'
+import { Logger } from './logger'
+import { refreshEvents } from './events'
 import { ServerManager } from './serverManager'
 import { ServerViewProvider } from './serverTreeview'
+import type { LemonadeModel } from './interfaces'
 
 export async function activate(context: vscode.ExtensionContext) {
   const rc = vscode.commands.registerCommand
@@ -84,11 +84,7 @@ export async function activate(context: vscode.ExtensionContext) {
     )
   }
 
-  const d1 = rc('lemon.startServer', async () => {
-    // start() fires refreshEvents itself whenever it updates the server state.
-    await serverManager.start()
-  })
-
+  const d1 = rc('lemon.startServer', serverManager.start)
   const d2 = rc('lemon.stopServer', async () => {
     await serverManager.stop()
     refreshEvents.fire()

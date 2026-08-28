@@ -15,23 +15,24 @@ const GITHUB_API = 'https://api.github.com/repos/lemonade-sdk/lemonade/releases/
 export class BinaryManager {
   constructor(private context: vscode.ExtensionContext) { }
 
-  /** Directory where the binary is stored (in the extension's own directory). */
+  // Directory where the binary is stored (in the extension's own directory).
   get binaryDir(): string {
     return path.join(this.context.extensionPath, 'bin', 'lemonade-server')
   }
 
-  /** Path to the lemond executable. */
+  // Path to the lemond executable.
   get binaryPath(): string {
     const isWindows = process.platform === 'win32'
     return path.join(this.binaryDir, isWindows ? 'lemond.exe' : 'lemond')
   }
 
-  /** Path to the lemonade CLI executable. */
+  // Path to the lemonade CLI executable.
   get cliPath(): string {
     const isWindows = process.platform === 'win32'
     return path.join(this.binaryDir, isWindows ? 'lemonade.exe' : 'lemonade')
   }
 
+  // Check if the binary is installed.
   isBinaryInstalled(): boolean {
     if (fs.existsSync(this.binaryPath)) return true
     // Check if the binary exists in a subdirectory (from a previous extraction)
@@ -40,14 +41,14 @@ export class BinaryManager {
     return !this.findFile(this.binaryDir, lemondName)
   }
 
-  /** Get the installed version, or null if not installed. */
+  // Get the installed version, or null if not installed.
   getInstalledVersion(): string | null {
     const versionFile = path.join(this.binaryDir, '.version')
     if (fs.existsSync(versionFile)) return fs.readFileSync(versionFile, 'utf8').trim()
     return null
   }
 
-  /** Detect the platform-specific asset name. */
+  // Detect the platform-specific asset name.
   private getAssetName(version: string): string {
     const platform = process.platform
     const arch = process.arch
@@ -65,12 +66,12 @@ export class BinaryManager {
     throw new Error(`Unsupported platform: ${platform}-${arch}`)
   }
 
-  /** Fetch the latest release info from GitHub. */
+  // Fetch the latest release info from GitHub.
   async getLatestRelease(): Promise<GitHubRelease> {
     return this.fetchJson(GITHUB_API)
   }
 
-  /** Fetch JSON from a URL with proper headers. */
+  // Fetch JSON from a URL with proper headers.
   private fetchJson(url: string): Promise<GitHubRelease> {
     return new Promise((resolve, reject) => {
       const options = {
@@ -88,9 +89,7 @@ export class BinaryManager {
         if (res.statusCode !== 200) {
           let body = ''
           res.on('data', (chunk) => { body += chunk })
-          res.on('end', () => {
-            reject(new Error(`GitHub API returned ${res.statusCode}: ${body}`))
-          })
+          res.on('end', () => reject(new Error(`GitHub API returned ${res.statusCode}: ${body}`)))
           return
         }
         let data = ''
@@ -106,7 +105,7 @@ export class BinaryManager {
     })
   }
 
-  /** Download a file with progress reporting. */
+  // Download a file with progress reporting.
   private downloadFile(url: string, dest: string, progress?: (percent: number) => void): Promise<void> {
     return new Promise((resolve, reject) => {
       const file = fs.createWriteStream(dest)
@@ -156,7 +155,7 @@ export class BinaryManager {
     })
   }
 
-  /** Extract a zip file (Windows). */
+  // Extract a zip file (Windows).
   private async extractZip(zipPath: string, destDir: string): Promise<void> {
     const isWindows = process.platform === 'win32'
     if (isWindows) {
@@ -168,12 +167,12 @@ export class BinaryManager {
     }
   }
 
-  /** Extract a tar.gz file (Linux/macOS). */
+  // Extract a tar.gz file (Linux/macOS).
   private async extractTarGz(tarPath: string, destDir: string): Promise<void> {
     await execAsync(`tar -xzf '${tarPath}' -C '${destDir}'`)
   }
 
-  /** Download and install the Lemonade Server binary. */
+  // Download and install the Lemonade Server binary.
   async downloadBinary(): Promise<string> {
     Logger.info('Fetching latest release...')
 
@@ -289,7 +288,7 @@ export class BinaryManager {
     }
   }
 
-  /** Recursively search for a file by name. */
+  // Recursively search for a file by name.
   private findFile(dir: string, fileName: string): string | null {
     try {
       const entries = fs.readdirSync(dir, { withFileTypes: true })
@@ -302,13 +301,13 @@ export class BinaryManager {
         }
       }
     } catch (error) {
-      console.error(`Error reading directory: ${dir}`, error)
       // Ignore errors reading directories
+      console.error(`Error reading directory: ${dir}`, error)
     }
     return null
   }
 
-  /** Ensure the binary is installed, downloading if necessary. */
+  // Ensure the binary is installed, downloading if necessary.
   async ensureBinary(): Promise<boolean> {
     // If the binary exists in a subdirectory, move it to the right place
     if (this.isBinaryInstalled() && !fs.existsSync(this.binaryPath)) {
@@ -340,7 +339,7 @@ export class BinaryManager {
     return false
   }
 
-  /** Check for updates and optionally install them. */
+  // Check for updates and optionally install them.
   async checkForUpdates(): Promise<void> {
     const mode = vscode.workspace.getConfiguration('lemon').get<string>('targetServer')
     if (mode !== 'embedded') return

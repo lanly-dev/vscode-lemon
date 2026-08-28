@@ -5,20 +5,20 @@ export enum ServerStatus {
   ERROR = 'ERROR',
 }
 
-/** The user-selected Lemonade server to target for chat and model operations. */
+// The user-selected Lemonade server to target for chat and model operations.
 export enum TargetServer {
   STANDALONE = 'standalone',
   EMBEDDED = 'embedded',
   CUSTOM = 'custom',
 }
 
-/** A chat message in OpenAI format. */
+// A chat message in OpenAI format.
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant'
   content: string
 }
 
-/** Request body for `/v1/chat/completions`. */
+// Request body for `/v1/chat/completions`.
 export interface ChatCompletionRequest {
   model: string
   messages: ChatMessage[]
@@ -28,7 +28,7 @@ export interface ChatCompletionRequest {
   top_p?: number
 }
 
-/** A single choice in a chat completion response. */
+// A single choice in a chat completion response.
 export interface ChatChoice {
   index: number
   message?: ChatMessage
@@ -36,7 +36,7 @@ export interface ChatChoice {
   finish_reason?: string | null
 }
 
-/** Non-streaming chat completion response. */
+// Non-streaming chat completion response.
 export interface ChatCompletionResponse {
   id: string
   object: string
@@ -50,19 +50,28 @@ export interface ChatCompletionResponse {
   }
 }
 
-/**
- * Number of pinned models per category, as reported by `/v1/health`.
- */
-export interface PinnedModels {
-  classification?: number
-  embedding?: number
-  image?: number
-  llm?: number
-  reranking?: number
-  transcription?: number
-  tts?: number
+// Live progress of an in-progress model download (surface in the tree view).
+export interface DownloadProgress {
+  /** Model being downloaded. */
+  modelId: string
+  /** Percent complete (0-100), or -1 when the server doesn't report a ratio. */
+  pct: number
+  /** Bytes downloaded so far, when reported by the server. */
+  written?: number
+  /** Total bytes to download, when reported by the server. */
+  total?: number
+  /** Human-friendly progress text from the server (fallback when pct is unknown). */
+  message: string
 }
-/** Health response from `/v1/health`. */
+
+// Information about a GitHub release.
+export interface GitHubRelease {
+  tag_name: string
+  name: string
+  assets: ReleaseAsset[]
+}
+
+// Health response from `/v1/health`.
 export interface HealthResponse {
   model_loaded: string | null
   all_models_loaded: Array<{
@@ -75,14 +84,7 @@ export interface HealthResponse {
   pinned_models?: PinnedModels
 }
 
-/** Information about a GitHub release. */
-export interface GitHubRelease {
-  tag_name: string
-  name: string
-  assets: ReleaseAsset[]
-}
-
-/** A model entry returned by the Lemonade Server `/v1/models` endpoint. */
+// A model entry returned by the Lemonade Server `/v1/models` endpoint.
 export interface LemonadeModel {
   id: string
   object?: string
@@ -113,28 +115,34 @@ export interface ModelTreeItem {
   description?: string
 }
 
-/** Information about a Lemonade Server release asset. */
+// Number of pinned models per category, as reported by `/v1/health`.
+export interface PinnedModels {
+  classification?: number
+  embedding?: number
+  image?: number
+  llm?: number
+  reranking?: number
+  transcription?: number
+  tts?: number
+}
+
+// A single progress event emitted by the streaming `/v1/pull` endpoint.
+export interface PullStreamEvent {
+  status?: string
+  response?: string
+  progress?: number
+  bytes_written?: number
+  bytes_total?: number
+}
+
+// Information about a Lemonade Server release asset.
 export interface ReleaseAsset {
   name: string
   browser_download_url: string
   size: number
 }
 
-/** Live progress of an in-progress model download (surface in the tree view). */
-export interface DownloadProgress {
-  /** Model being downloaded. */
-  modelId: string
-  /** Percent complete (0-100), or -1 when the server doesn't report a ratio. */
-  pct: number
-  /** Bytes downloaded so far, when reported by the server. */
-  written?: number
-  /** Total bytes to download, when reported by the server. */
-  total?: number
-  /** Human-friendly progress text from the server (fallback when pct is unknown). */
-  message: string
-}
-
-/** A server instance shown in the tree view. */
+// A server instance shown in the tree view.
 export interface ServerInstance {
   id: string
   name: string

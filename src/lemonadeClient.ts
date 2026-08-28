@@ -5,17 +5,9 @@ import type {
   ChatCompletionResponse,
   ChatMessage,
   HealthResponse,
-  LemonadeModel
+  LemonadeModel,
+  PullStreamEvent
 } from './interfaces'
-
-/** A single progress event emitted by the streaming `/v1/pull` endpoint. */
-interface PullStreamEvent {
-  status?: string
-  response?: string
-  progress?: number
-  bytes_written?: number
-  bytes_total?: number
-}
 
 /**
  * HTTP client for the Lemonade Server API.
