@@ -13,7 +13,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // Initialize managers
   const binaryManager = new BinaryManager(context)
-  const serverManager = new ServerManager(context, binaryManager)
+  const serverManager = new ServerManager(binaryManager)
   const chatParticipant = new ChatParticipant(context, serverManager)
   const provider = await createTreeView(serverManager)
 
@@ -150,28 +150,25 @@ export async function activate(context: vscode.ExtensionContext) {
     await startPull(selected.label)
   })
 
-  const d8 = rc('lemon.loadModel', async (item?: { modelId?: string }) => {
-    await serverManager.loadModel(item?.modelId)
+  const d8 = rc('lemon.loadModel', async (item: { modelId: string }) => {
+    await serverManager.loadModel(item.modelId)
     // Need to look into how to update the selected model in the chat participant after loading a model
     // chatParticipant.setSelectedModel(modelName)
     refreshEvents.fire()
   })
 
-  const d9 = rc('lemon.unloadModel', async (item?: { modelId?: string }) => {
-    await serverManager.unloadModel(item?.modelId)
+  const d9 = rc('lemon.unloadModel', async (item: { modelId: string }) => {
+    await serverManager.unloadModel(item.modelId)
     refreshEvents.fire()
   })
 
-  const d17 = rc('lemon.removeModel', async (item?: { modelId?: string }) => {
-    await serverManager.deleteModel(item?.modelId)
-    if (item?.modelId) provider.clearPartial(item.modelId)
+  const d17 = rc('lemon.removeModel', async (item: { modelId: string }) => {
+    await serverManager.deleteModel(item.modelId)
+    provider.clearPartial(item.modelId)
     refreshEvents.fire()
   })
 
-  const d18 = rc('lemon.retryModel', async (item?: { modelId?: string }) => {
-    if (!item?.modelId) return
-    await startPull(item.modelId)
-  })
+  const d18 = rc('lemon.retryModel', async (item: { modelId: string }) => startPull(item.modelId))
 
   const d10 = rc('lemon.selectModel', async () => {
     const selected = await serverManager.selectModel()

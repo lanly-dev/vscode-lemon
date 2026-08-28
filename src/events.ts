@@ -17,5 +17,5 @@ class RefreshEvents {
   }
 }
 
-// Module-level singleton event object for requesting tree view refreshes.
+/** Module-level singleton event object for requesting tree view refreshes. */
 export const refreshEvents = new RefreshEvents()

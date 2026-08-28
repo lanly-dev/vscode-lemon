@@ -12,13 +12,13 @@ export enum TargetServer {
   CUSTOM = 'custom',
 }
 
-// A chat message in OpenAI format.
+/** A chat message in OpenAI format. */
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant'
   content: string
 }
 
-// Request body for `/v1/chat/completions`.
+/** Request body for `/v1/chat/completions`. */
 export interface ChatCompletionRequest {
   model: string
   messages: ChatMessage[]
@@ -28,7 +28,7 @@ export interface ChatCompletionRequest {
   top_p?: number
 }
 
-// A single choice in a chat completion response.
+/** A single choice in a chat completion response. */
 export interface ChatChoice {
   index: number
   message?: ChatMessage
@@ -36,7 +36,7 @@ export interface ChatChoice {
   finish_reason?: string | null
 }
 
-// Non-streaming chat completion response.
+/** Non-streaming chat completion response. */
 export interface ChatCompletionResponse {
   id: string
   object: string
@@ -50,7 +50,7 @@ export interface ChatCompletionResponse {
   }
 }
 
-// Live progress of an in-progress model download (surface in the tree view).
+/** Live progress of an in-progress model download (surface in the tree view). */
 export interface DownloadProgress {
   /** Model being downloaded. */
   modelId: string
@@ -64,14 +64,14 @@ export interface DownloadProgress {
   message: string
 }
 
-// Information about a GitHub release.
+/** Information about a GitHub release. */
 export interface GitHubRelease {
   tag_name: string
   name: string
   assets: ReleaseAsset[]
 }
 
-// Health response from `/v1/health`.
+/** Health response from `/v1/health`. */
 export interface HealthResponse {
   model_loaded: string | null
   all_models_loaded: Array<{
@@ -84,7 +84,7 @@ export interface HealthResponse {
   pinned_models?: PinnedModels
 }
 
-// A model entry returned by the Lemonade Server `/v1/models` endpoint.
+/** A model entry returned by the Lemonade Server `/v1/models` endpoint. */
 export interface LemonadeModel {
   id: string
   object?: string
@@ -115,7 +115,7 @@ export interface ModelTreeItem {
   description?: string
 }
 
-// Number of pinned models per category, as reported by `/v1/health`.
+/** Number of pinned models per category, as reported by `/v1/health`. */
 export interface PinnedModels {
   classification?: number
   embedding?: number
@@ -126,7 +126,7 @@ export interface PinnedModels {
   tts?: number
 }
 
-// A single progress event emitted by the streaming `/v1/pull` endpoint.
+/** A single progress event emitted by the streaming `/v1/pull` endpoint. */
 export interface PullStreamEvent {
   status?: string
   response?: string
@@ -135,14 +135,14 @@ export interface PullStreamEvent {
   bytes_total?: number
 }
 
-// Information about a Lemonade Server release asset.
+/** Information about a Lemonade Server release asset. */
 export interface ReleaseAsset {
   name: string
   browser_download_url: string
   size: number
 }
 
-// A server instance shown in the tree view.
+/** A server instance shown in the tree view. */
 export interface ServerInstance {
   id: string
   name: string

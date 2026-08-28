@@ -164,7 +164,6 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
     return items
   }
 
-  /** Get children for a specific element. */
   private getChildrenForElement(element: TreeItem): TreeItem[] {
     if (element.contextValue === 'LEMON_SERVER_HEADER') return this.getServerChildren(this._activeServer)
     if (element.contextValue === 'LEMOND_LOADED_HEADER') return this.getLoadedModelChildren(element)

@@ -16,9 +16,7 @@ import { Logger } from './logger'
 import { refreshEvents } from './events'
 import { ServerStatus, TargetServer, type ServerInstance } from './interfaces'
 
-/**
- * Manages the Lemonade Server process lifecycle.
- */
+// Manages the Lemonade Server process lifecycle.
 export class ServerManager {
   private _embedPort: number = 8000
   private _standalonePort: number = 13305
@@ -29,23 +27,26 @@ export class ServerManager {
   private _usingExistingServer = false
 
   private _client: LemonadeClient
-  private process: ChildProcess | null = null
   private _fatalErrorShown = false
   private _processExited = false
-  private statusChangeCallbacks: Array<(status: ServerStatus) => void> = []
+  private process: ChildProcess | null = null
   private selectionChangeCallbacks: Array<() => void> = []
+  private statusChangeCallbacks: Array<(status: ServerStatus) => void> = []
 
-  constructor(private context: ExtensionContext, private binaryManager: BinaryManager) {
-    // Read configured ports so the getters/URLs reflect user settings immediately.
+  constructor(private binaryManager: BinaryManager) {
     const config = workspace.getConfiguration('lemon')
     const mode = config.get<TargetServer>('targetServer', TargetServer.STANDALONE)
     this._embedPort = config.get<number>('embeddedPort', 8000)
     this._standalonePort = config.get<number>('standalonePort', 13305)
     if (mode === TargetServer.STANDALONE) this._client = new LemonadeClient(`http://localhost:${this._standalonePort}`)
     else if (mode === TargetServer.EMBEDDED) this._client = new LemonadeClient(`http://localhost:${this._embedPort}`)
-    else this._client = new LemonadeClient(`http://localhost:${this._embedPort}`)
+    else if (mode === TargetServer.CUSTOM) {
+      const customUrl = config.get<string>('customServerUrl')
+      if (!customUrl) throw new Error('Custom server URL is not configured.')
+      this._client = new LemonadeClient(customUrl)
+    }
+    else throw new Error(`Unexpected target server mode: ${mode}`) // This should never happen
 
-    // Apply the configured target server (standalone / embedded / custom).
     this.applyConfiguredServerMode()
   }
 
@@ -78,7 +79,7 @@ export class ServerManager {
   /** Get the name of the currently selected server. */
   get selectedServerName(): string {
     if (this._serverName) return this._serverName
-    return 'lemon (Embedded)'
+    return 'Missing Selected Server'
   }
 
   /** Get whether the embedded server is selected. */
@@ -100,7 +101,7 @@ export class ServerManager {
    */
   async getActiveServer(): Promise<ServerInstance | null> {
     const config = workspace.getConfiguration('lemon')
-    const mode = config.get<TargetServer>('targetServer', TargetServer.STANDALONE)
+    const mode = config.get<TargetServer>('targetServer')
 
     let instance: ServerInstance | null
     switch (mode) {
@@ -165,12 +166,7 @@ export class ServerManager {
         maxLoadedModels: health.max_loaded_models
       }
     } catch {
-      return {
-        id: 'custom',
-        name: 'Custom Server',
-        url: customUrl,
-        status: ServerStatus.ERROR
-      }
+      return null
     }
   }
 
@@ -213,39 +209,26 @@ export class ServerManager {
         maxLoadedModels
       }
     } catch (err) {
-      return {
-        id: 'lemond',
-        name: 'lemond (Embedded)',
-        url: this.url,
-        status: ServerStatus.ERROR,
-        version: this.binaryManager.getInstalledVersion() ?? undefined,
-        error: err instanceof Error ? err.message : String(err)
-      }
+      return null
     }
   }
 
-  /**
-   * Load a model on the selected server.
-   * If no model name is supplied, the user is prompted to pick one.
-   */
-  async loadModel(modelName?: string): Promise<void> {
+  async loadModel(modelName: string): Promise<void> {
     if (!await this.ensureRunning()) return undefined
-    const name = await this.resolveModelName(modelName)
-    if (!name) return
 
     try {
       await window.withProgress(
         {
           location: ProgressLocation.Notification,
-          title: `Loading model: ${name}`,
+          title: `Loading model: ${modelName}`,
           cancellable: false
         },
         async (progress) => {
           progress.report({ message: 'Loading...' })
-          await this._client.loadModel(name!)
+          await this._client.loadModel(modelName)
         }
       )
-      showInformationMessage(`Model '${name}' loaded successfully`)
+      showInformationMessage(`Model '${modelName}' loaded successfully`)
       return
     } catch (err: unknown) {
       Logger.error('Failed to load model', err)
@@ -253,35 +236,9 @@ export class ServerManager {
     }
   }
 
-  /**
-   * Unload a model on the selected server.
-   * If no model name is supplied, the user is prompted to pick one of the loaded models.
-   */
-  async unloadModel(modelName?: string): Promise<void> {
+  async unloadModel(modelName: string): Promise<void> {
     if (!await this.ensureRunning()) return
-    let name = modelName
-
-    if (!name) {
-      try {
-        const health = await this._client.getHealth()
-        const loadedModels = health.all_models_loaded.map((m) => m.model_name)
-        if (loadedModels.length === 0) {
-          showInformationMessage('No models are currently loaded')
-          return
-        }
-        const items: QuickPickItem[] = loadedModels.map((m) => ({ label: m }))
-        const selected = await showQuickPick(items, {
-          title: 'Select a model to unload',
-          placeHolder: 'Choose a model'
-        })
-        if (!selected) return
-        name = selected.label
-      } catch (err: unknown) {
-        Logger.error('Failed to get loaded models', err)
-        showErrorMessage(`Failed to get loaded models: ${err}`)
-        return
-      }
-    }
+    const name = modelName
 
     try {
       await window.withProgress(
@@ -296,73 +253,41 @@ export class ServerManager {
         }
       )
       showInformationMessage(`Model '${name}' unloaded successfully`)
-      return
     } catch (err: unknown) {
       Logger.error('Failed to unload model', err)
       showErrorMessage(`Failed to unload model: ${err}`)
-      return
     }
   }
 
   /**
-   * Delete (remove) a downloaded model from disk on the selected server.
-   * If no model name is supplied, the user is prompted to pick one of the
-   * installed models. Asks for confirmation since the action is destructive.
+   * Delete a downloaded model from disk on the selected server.
    */
-  async deleteModel(modelName?: string): Promise<void> {
+  async deleteModel(modelName: string): Promise<void> {
     if (!await this.ensureRunning()) return
-    let name = modelName
-
-    if (!name) {
-      try {
-        // Installed models (the classic /v1/models response) — not the full catalog.
-        const models = await this._client.listModels()
-        if (models.length === 0) {
-          showInformationMessage('No downloaded models to remove')
-          return
-        }
-        const items: QuickPickItem[] = models.map((m) => ({
-          label: m.id,
-          description: getModelLabel(m) ?? m.owned_by ?? ''
-        }))
-        const selected = await showQuickPick(items, {
-          title: 'Select a model to remove',
-          placeHolder: 'Choose a model'
-        })
-        if (!selected) return
-        name = selected.label
-      } catch (err: unknown) {
-        Logger.error('Failed to list models', err)
-        showErrorMessage(`Failed to list models: ${err}`)
-        return
-      }
-    }
 
     try {
       const confirm = await window.showWarningMessage(
-        `Remove model '${name}' from disk? This cannot be undone.`,
+        `Delete model '${modelName}' from disk? This cannot be undone.`,
         { modal: true },
-        'Remove'
+        'Delete'
       )
-      if (confirm !== 'Remove') return
+      if (confirm !== 'Delete') return
 
       await window.withProgress(
         {
           location: ProgressLocation.Notification,
-          title: `Removing model: ${name}`,
+          title: `Deleting model: ${modelName}`,
           cancellable: false
         },
         async (progress) => {
-          progress.report({ message: 'Removing...' })
-          await this._client.deleteModel(name!)
+          progress.report({ message: 'Deleting...' })
+          await this._client.deleteModel(modelName)
         }
       )
-      showInformationMessage(`Model '${name}' removed successfully`)
-      return
+      showInformationMessage(`Model '${modelName}' deleted successfully`)
     } catch (err: unknown) {
       Logger.error('Failed to delete model', err)
       showErrorMessage(`Failed to delete model: ${err}`)
-      return
     }
   }
 
@@ -370,20 +295,16 @@ export class ServerManager {
    * Set the maximum number of concurrently loaded models.
    * Persists the value to the lemon.maxLoadedModels config, and if the
    * embedded server is running, pushes it to the running server immediately.
+   * Still fuzzy on how this interacts with currently loaded models.
    */
   async setMaxLoadedModels(value: number): Promise<void> {
     const config = workspace.getConfiguration('lemon')
     await config.update('maxLoadedModels', value, ConfigurationTarget.Global)
     Logger.info(`Set lemon.maxLoadedModels to ${value}`)
 
-    if (this._status === ServerStatus.RUNNING) {
-      await this._client.updateConfig({ max_loaded_models: value })
-      Logger.info('Pushed max_loaded_models to running server')
-    } else {
-      showInformationMessage(
-        'Server is not running. The setting will be applied on the next server start.'
-      )
-    }
+    if (this._status !== ServerStatus.RUNNING) return
+    await this._client.updateConfig({ max_loaded_models: value })
+    Logger.info('Pushed max_loaded_models to running server')
   }
 
   /**
@@ -394,12 +315,6 @@ export class ServerManager {
   async selectModel(): Promise<string | undefined> {
     if (!await this.ensureRunning()) return undefined
     return this.promptForModel('Select active model for chat')
-  }
-
-  /** If a model name isn't provided, prompt the user to pick one from the available models. */
-  private async resolveModelName(modelName?: string): Promise<string | undefined> {
-    if (modelName) return modelName
-    return this.promptForModel('Select a model to load')
   }
 
   /** Show a quick pick of the available models and return the selected model name. */
