@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 
-import { getModelLabel } from './modelLabel'
+import { ModelManager } from './modelManager'
 import { LemonadeClient } from './lemonadeClient'
 import { Logger } from './logger'
 import { ServerManager } from './serverManager'
@@ -81,7 +81,7 @@ export class ChatParticipant {
         return undefined
       }
 
-      const items = models.map((m) => ({ label: m.id, description: getModelLabel(m) ?? m.owned_by ?? '' }))
+      const items = models.map((m) => ({ label: m.id, description: ModelManager.getModelLabel(m) ?? m.owned_by ?? '' }))
       const selected = await vscode.window.showQuickPick(items, {
         title: 'Select a model to chat with',
         placeHolder: 'Choose a model',

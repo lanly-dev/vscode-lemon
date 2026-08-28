@@ -2,7 +2,6 @@ import * as vscode from 'vscode'
 
 import { BinaryManager } from './binaryManager'
 import { ChatParticipant } from './chatParticipant'
-import { getModelLabel } from './modelLabel'
 import { Logger } from './logger'
 import { refreshEvents } from './events'
 import { ModelManager } from './modelManager'
@@ -141,7 +140,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const items: vscode.QuickPickItem[] = pullable.map((m) => ({
       label: m.id,
-      description: getModelLabel(m) ?? '',
+      description: ModelManager.getModelLabel(m) ?? '',
       detail: formatSize(m.size) || 'Size not reported'
     }))
 

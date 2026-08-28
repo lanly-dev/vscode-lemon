@@ -6,7 +6,7 @@ const { None, Expanded } = TreeItemCollapsibleState
 import { refreshEvents } from './events'
 import { ServerManager } from './serverManager'
 import { ServerStatus } from './interfaces'
-import { getModelLabel } from './modelLabel'
+import { ModelManager } from './modelManager'
 import { formatBytes } from './utils'
 
 import type { DownloadProgress, ServerInstance } from './interfaces'
@@ -315,7 +315,7 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
       item.modelId = model.id
 
       // Show the model's category label (e.g. "Transcription", "Image") as subtext.
-      const modelLabel = getModelLabel(model)
+      const modelLabel = ModelManager.getModelLabel(model)
       if (modelLabel) item.description = modelLabel
 
       if (isLoaded) {

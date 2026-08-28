@@ -1,10 +1,9 @@
 import { ConfigurationTarget, ProgressLocation, QuickPickItem } from 'vscode'
 import { window, workspace } from 'vscode'
 
-import { getModelLabel } from './modelLabel'
 import { Logger } from './logger'
 import { ServerManager } from './serverManager'
-import { ServerStatus } from './interfaces'
+import { LemonadeModel, ServerStatus } from './interfaces'
 
 const { showErrorMessage, showInformationMessage, showQuickPick, showWarningMessage } = window
 
@@ -14,7 +13,22 @@ const { showErrorMessage, showInformationMessage, showQuickPick, showWarningMess
  * so the server lifecycle manager stays focused on process management.
  */
 export class ModelManager {
-  constructor(private serverManager: ServerManager) {}
+
+  /**
+   * Build the subtext shown alongside a model in the tree view.
+   *
+   * Uses the model's `labels` verbatim (no hardcoded category knowledge), joined
+   * by ", ". Falls back to `owned_by`, then `type`. Returns undefined when none
+   * of those are present so callers can omit the subtext entirely.
+   */
+  static getModelLabel(model: Pick<LemonadeModel, 'labels' | 'type' | 'owned_by'>): string | undefined {
+    const labels = model.labels
+    if (labels && labels.length > 0) return labels.join(', ')
+    if (model.owned_by) return model.owned_by
+    return model.type
+  }
+
+  constructor(private serverManager: ServerManager) { }
 
   /** The client bound to the currently selected server. */
   private get client() {
@@ -134,7 +148,7 @@ export class ModelManager {
       }
       const items: QuickPickItem[] = models.map((m) => ({
         label: m.id,
-        description: getModelLabel(m) ?? m.owned_by ?? ''
+        description: ModelManager.getModelLabel(m) ?? m.owned_by ?? ''
       }))
       const selected = await showQuickPick(items, {
         title,
@@ -147,4 +161,5 @@ export class ModelManager {
       return undefined
     }
   }
+
 }
