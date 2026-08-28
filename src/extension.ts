@@ -8,84 +8,15 @@ import { ModelManager } from './modelManager'
 import { ServerManager } from './serverManager'
 import { ServerViewProvider } from './serverTreeview'
 
-import type { LemonadeModel } from './interfaces'
-
 export async function activate(context: vscode.ExtensionContext) {
   const rc = vscode.commands.registerCommand
 
   // Initialize managers
   const binaryManager = new BinaryManager(context)
   const serverManager = new ServerManager(binaryManager)
-  const modelManager = new ModelManager(serverManager)
-  const chatParticipant = new ChatParticipant(context, serverManager)
   const provider = await createTreeView(serverManager)
-
-  /**
-   * Pull a specific model by id, showing live progress in a cancellable popup
-   * and tracking incomplete downloads in the tree view on cancel/failure.
-   */
-  const startPull = async (modelId: string): Promise<void> => {
-    if (!await serverManager.ensureRunning()) return
-
-    const client = serverManager.client
-
-    // Re-pulling a known-incomplete model: drop its stale "incomplete" marker
-    // while it's actively downloading; it will be re-marked if it fails again.
-    provider.clearPartial(modelId)
-
-    // Show a live "Downloading Models" entry in the tree view for this model.
-    provider.beginDownload(modelId)
-
-    const abortController = new AbortController()
-
-    await vscode.window.withProgress(
-      {
-        location: vscode.ProgressLocation.Notification,
-        title: `Pulling model: ${modelId}`,
-        cancellable: true
-      },
-      async (progress, token) => {
-        // Cancel the underlying HTTP request when the user dismisses the popup.
-        token.onCancellationRequested(() => abortController.abort())
-        let lastPct = 0
-
-        try {
-          await client.pullModelStream(
-            modelId,
-            (p) => {
-              if (p.pct >= 0) lastPct = p.pct
-              // Show the % number live in the popup.
-              const pctText = p.pct >= 0 ? `${Math.round(p.pct)}%` : ''
-              progress.report({ message: [pctText, p.message].filter(Boolean).join(' ') || 'Downloading...' })
-              // Tree updates are throttled to every 5% inside updateDownload.
-              provider.updateDownload(modelId, p.pct, p.message, p.written, p.total)
-            },
-            abortController.signal
-          )
-          provider.clearPartial(modelId)
-          provider.endDownload(modelId)
-          refreshEvents.fire()
-          vscode.window.showInformationMessage(`Model '${modelId}' pulled successfully`)
-        } catch (err: unknown) {
-          // Remove from the live list, then keep it as an incomplete download.
-          provider.endDownload(modelId)
-          if (token.isCancellationRequested) {
-            Logger.warn(`Model download cancelled: ${modelId}`)
-            provider.markPartial(modelId, lastPct)
-            refreshEvents.fire()
-            vscode.window.showInformationMessage(
-              `Cancelled pulling '${modelId}'. The partial download is now listed under "Incomplete Downloads".`
-            )
-          } else {
-            Logger.error('Failed to pull model', err)
-            provider.markPartial(modelId, lastPct)
-            refreshEvents.fire()
-            vscode.window.showErrorMessage(`Failed to pull model: ${err}`)
-          }
-        }
-      }
-    )
-  }
+  const modelManager = new ModelManager(serverManager, provider)
+  const chatParticipant = new ChatParticipant(context, serverManager)
 
   const d1 = rc('lemon.startServer', serverManager.start)
   const d2 = rc('lemon.stopServer', async () => {
@@ -110,48 +41,7 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.executeCommand('workbench.action.openSettings', '@ext:lanly-dev.lemon')
   })
 
-  const d7 = rc('lemon.pullModel', async () => {
-    if (!await serverManager.ensureRunning()) return
-
-    // Fetch the full model catalog (?show_all=true), the same source the
-    // desktop Model Manager uses. Each entry is tagged with a `downloaded`
-    // flag, so we can present the models that aren't downloaded yet.
-    let allModels: LemonadeModel[]
-    try {
-      allModels = await serverManager.client.listModels(true)
-    } catch (err: unknown) {
-      Logger.error('Failed to list available models', err)
-      vscode.window.showErrorMessage(`Failed to list available models: ${err}`)
-      return
-    }
-
-    const pullable = allModels.filter((m) => !m.downloaded)
-    if (pullable.length === 0) {
-      vscode.window.showInformationMessage('All catalog models are already downloaded.')
-      return
-    }
-
-    // The /v1/models?show_all=true response reports `size` in **GB** (e.g.
-    // 0.38, 3.61, 5.2) — omitted when unknown. Format accordingly.
-    const formatSize = (sizeGb?: number): string => {
-      if (!sizeGb || sizeGb <= 0) return ''
-      return sizeGb >= 1024 ? `${(sizeGb / 1024).toFixed(1)} TB` : `${sizeGb.toFixed(2)} GB`
-    }
-
-    const items: vscode.QuickPickItem[] = pullable.map((m) => ({
-      label: m.id,
-      description: ModelManager.getModelLabel(m) ?? '',
-      detail: formatSize(m.size) || 'Size not reported'
-    }))
-
-    const selected = await vscode.window.showQuickPick(items, {
-      title: 'Pull Model',
-      placeHolder: 'Choose a model to download'
-    })
-
-    if (!selected) return
-    await startPull(selected.label)
-  })
+  const d7 = rc('lemon.pullModel', () => modelManager.pullModel())
 
   const d8 = rc('lemon.loadModel', async (item: { modelId: string }) => {
     await modelManager.loadModel(item.modelId)
@@ -171,7 +61,7 @@ export async function activate(context: vscode.ExtensionContext) {
     refreshEvents.fire()
   })
 
-  const d18 = rc('lemon.retryModel', async (item: { modelId: string }) => startPull(item.modelId))
+  const d18 = rc('lemon.retryModel', (item: { modelId: string }) => modelManager.startPull(item.modelId))
 
   const d10 = rc('lemon.selectModel', async () => {
     const selected = await modelManager.selectModel()
@@ -187,36 +77,7 @@ export async function activate(context: vscode.ExtensionContext) {
     refreshEvents.fire()
   })
 
-  const d13 = rc('lemon.setMaxLoadedModels', async () => {
-    const config = vscode.workspace.getConfiguration('lemon')
-    const current = config.get<number>('maxLoadedModels', 1)
-    const currentText = current === -1 ? 'Unlimited' : String(current)
-
-    const value = await vscode.window.showInputBox({
-      title: 'Set Max Loaded Models',
-      prompt: `Current: ${currentText}. Enter the maximum number of loaded models (-1 for unlimited).`,
-      placeHolder: 'e.g. 1 or -1 for unlimited',
-      value: String(current),
-      validateInput: (input) => {
-        const trimmed = input.trim()
-        if (trimmed === '') return 'Please enter a number'
-        const n = Number(trimmed)
-        if (!Number.isInteger(n) || n < -1) return 'Enter an integer of -1 or greater (-1 = unlimited)'
-        return undefined
-      }
-    })
-    if (value === undefined || value.trim() === '') return
-
-    const n = Number(value)
-    try {
-      await modelManager.setMaxLoadedModels(n)
-      vscode.window.showInformationMessage(`Max loaded models set to ${n === -1 ? 'unlimited' : n}`)
-      refreshEvents.fire()
-    } catch (err: unknown) {
-      Logger.error('Failed to set max loaded models', err)
-      vscode.window.showErrorMessage(`Failed to set max loaded models: ${err}`)
-    }
-  })
+  const d13 = rc('lemon.setMaxLoadedModels', () => modelManager.setMaxLoadedModels())
 
   const d15 = rc('lemon.openServerUrl', (item?: vscode.TreeItem) => {
     const label = item?.label
