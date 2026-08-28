@@ -387,7 +387,7 @@ export class ServerManager {
     }
   }
 
-  // Switch the selected server
+  /** Switch the selected server */
   async selectServer(): Promise<void> {
     const config = workspace.getConfiguration('lemon')
     const standalonePort = config.get<number>('standalonePort', 13305)

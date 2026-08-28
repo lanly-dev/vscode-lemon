@@ -1,4 +1,5 @@
 import * as vscode from 'vscode'
+
 import { BinaryManager } from './binaryManager'
 import { ChatParticipant } from './chatParticipant'
 import { getModelLabel } from './modelLabel'
@@ -6,6 +7,7 @@ import { Logger } from './logger'
 import { refreshEvents } from './events'
 import { ServerManager } from './serverManager'
 import { ServerViewProvider } from './serverTreeview'
+
 import type { LemonadeModel } from './interfaces'
 
 export async function activate(context: vscode.ExtensionContext) {

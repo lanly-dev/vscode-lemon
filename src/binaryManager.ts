@@ -287,7 +287,7 @@ export class BinaryManager {
     }
   }
 
-  // Recursively search for a file by name.
+  /** Recursively search for a file by name. */
   private findFile(dir: string, fileName: string): string | null {
     try {
       const entries = fs.readdirSync(dir, { withFileTypes: true })
@@ -306,7 +306,7 @@ export class BinaryManager {
     return null
   }
 
-  // Ensure the binary is installed, downloading if necessary.
+  /** Ensure the binary is installed, downloading if necessary. */
   async ensureBinary(): Promise<boolean> {
     // If the binary exists in a subdirectory, move it to the right place
     if (this.isBinaryInstalled() && !fs.existsSync(this.binaryPath)) {
@@ -338,7 +338,7 @@ export class BinaryManager {
     return false
   }
 
-  // Check for updates and optionally install them.
+  /** Check for updates and optionally install them. */
   async checkForUpdates(): Promise<void> {
     const mode = vscode.workspace.getConfiguration('lemon').get<string>('targetServer')
     if (mode !== 'embedded') return

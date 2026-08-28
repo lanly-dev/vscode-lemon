@@ -419,6 +419,13 @@ export class LemonadeClient {
   }
 
   /** Convert VS Code chat messages to OpenAI format. */
+  /**
+   * Convert VS Code chat messages to OpenAI format.
+   * @param prompt The current user prompt.
+   * @param history The chat history.
+   * @param command Optional command to influence the system prompt.
+   * @returns An array of chat messages in OpenAI format.
+   */
   static toChatMessages(
     prompt: string,
     history: Array<{ role: string, content: string }>,

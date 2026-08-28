@@ -35,7 +35,7 @@ export class ChatParticipant {
     })
   }
 
-  // Update the client to point at the currently selected server.
+  /** Update the client to point at the currently selected server. */
   private updateClientForSelectedServer(): void {
     const url = this.serverManager.selectedServerUrl
     // Why it creates a new client each time instead of reusing the existing one
@@ -43,7 +43,7 @@ export class ChatParticipant {
     Logger.info(`Chat client pointing to: ${url}`)
   }
 
-  // Get the model to use for chat.
+  /** Get the model to use for chat. */
   private async getModel(): Promise<string | undefined> {
     // Reuse the model already chosen earlier in this session.
     if (this.selectedModel) return this.selectedModel
@@ -57,7 +57,7 @@ export class ChatParticipant {
       return chatModel
     }
 
-    if (this.serverManager.status !== ServerStatus.RUNNING) return
+    if (this.serverManager.status !== ServerStatus.RUNNING) return undefined
 
     try {
       // No chat model configured -> let the user pick which model to chat with.
@@ -70,7 +70,7 @@ export class ChatParticipant {
         vscode.window.showWarningMessage(
           'No models available. Please pull a model first using the "Lemon: Pull Model" command.'
         )
-        return
+        return undefined
       }
 
       if (models.length === 0) {
@@ -78,13 +78,10 @@ export class ChatParticipant {
           `No chat-capable models found (label "chat"). ` +
           'Pull a chat model or change the lemon.chatModelLabel setting.'
         )
-        return
+        return undefined
       }
 
-      const items = models.map((m) => ({
-        label: m.id,
-        description: getModelLabel(m) ?? m.owned_by ?? ''
-      }))
+      const items = models.map((m) => ({ label: m.id, description: getModelLabel(m) ?? m.owned_by ?? '' }))
       const selected = await vscode.window.showQuickPick(items, {
         title: 'Select a model to chat with',
         placeHolder: 'Choose a model',
@@ -100,17 +97,16 @@ export class ChatParticipant {
     } catch (err) {
       Logger.error('Failed to get model for chat', err)
     }
-
-    return
+    return undefined
   }
 
-  // Set the selected model.
+  /** Set the selected model. */
   setSelectedModel(model: string): void {
     this.selectedModel = model
     Logger.info(`Selected model for chat: ${model}`)
   }
 
-  // Handle a chat request from VS Code.
+  /** Handle a chat request from VS Code. */
   private async handleRequest(
     request: vscode.ChatRequest,
     context: vscode.ChatContext,
@@ -119,7 +115,6 @@ export class ChatParticipant {
   ): Promise<vscode.ChatResult> {
     Logger.info(`Chat request received: "${request.prompt.substring(0, 100)}"`)
 
-    // Check if server is running
     if (this.serverManager.status !== ServerStatus.RUNNING) {
       const start = await vscode.window.showInformationMessage(
         'Lemonade Server is not running. Start it now?',
@@ -184,10 +179,8 @@ export class ChatParticipant {
     }
   }
 
-  // Extract chat history from the VS Code chat context.
-  private extractHistory(
-    context: vscode.ChatContext
-  ): Array<{ role: string, content: string }> {
+  /** Extract chat history from the VS Code chat context. */
+  private extractHistory(context: vscode.ChatContext): Array<{ role: string, content: string }> {
     const history: Array<{ role: string, content: string }> = []
 
     for (const turn of context.history) {
@@ -212,7 +205,7 @@ export class ChatParticipant {
     return history
   }
 
-  // Get the active editor's content as context.
+  /** Get the active editor's content as context. */
   private getEditorContext(): string | undefined {
     const editor = vscode.window.activeTextEditor
     if (!editor) return undefined
@@ -224,7 +217,7 @@ export class ChatParticipant {
     return editor.document.getText()
   }
 
-  // Create an AbortSignal from a VS Code CancellationToken.
+  /** Create an AbortSignal from a VS Code CancellationToken. */
   private createAbortSignal(token: vscode.CancellationToken): AbortSignal {
     const controller = new AbortController()
     token.onCancellationRequested(() => {
@@ -234,7 +227,7 @@ export class ChatParticipant {
     return controller.signal
   }
 
-  // Open the chat view with our participant
+  /** Open the chat view with our participant. */
   static async openChat(): Promise<void> {
     await vscode.commands.executeCommand('workbench.action.chat.open', { participant: 'LEMON_CHAT' })
   }
