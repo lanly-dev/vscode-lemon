@@ -8,9 +8,7 @@ import { ServerStatus } from './interfaces'
 
 import type { ChatMessage } from './interfaces'
 
-/**
- * Handles VS Code chat requests by forwarding them to the Lemonade Server.
- */
+// Handles VS Code chat requests by forwarding them to the Lemonade Server.
 export class ChatParticipant {
   private client: LemonadeClient
   private participant: vscode.ChatParticipant
@@ -37,7 +35,7 @@ export class ChatParticipant {
     })
   }
 
-  /** Update the client to point at the currently selected server. */
+  // Update the client to point at the currently selected server.
   private updateClientForSelectedServer(): void {
     const url = this.serverManager.selectedServerUrl
     // Why it creates a new client each time instead of reusing the existing one
@@ -45,7 +43,7 @@ export class ChatParticipant {
     Logger.info(`Chat client pointing to: ${url}`)
   }
 
-  /** Get the model to use for chat. */
+  // Get the model to use for chat.
   private async getModel(): Promise<string | undefined> {
     // Reuse the model already chosen earlier in this session.
     if (this.selectedModel) return this.selectedModel
@@ -106,13 +104,13 @@ export class ChatParticipant {
     return
   }
 
-  /** Set the selected model. */
+  // Set the selected model.
   setSelectedModel(model: string): void {
     this.selectedModel = model
     Logger.info(`Selected model for chat: ${model}`)
   }
 
-  /** Handle a chat request from VS Code. */
+  // Handle a chat request from VS Code.
   private async handleRequest(
     request: vscode.ChatRequest,
     context: vscode.ChatContext,
@@ -172,9 +170,7 @@ export class ChatParticipant {
     try {
       const fullResponse = await this.client.chatCompletionStream(
         { model, messages },
-        (tokenChunk) => {
-          response.markdown(tokenChunk)
-        },
+        (tokenChunk) => response.markdown(tokenChunk),
         this.createAbortSignal(token)
       )
 
@@ -188,7 +184,7 @@ export class ChatParticipant {
     }
   }
 
-  /** Extract chat history from the VS Code chat context. */
+  // Extract chat history from the VS Code chat context.
   private extractHistory(
     context: vscode.ChatContext
   ): Array<{ role: string, content: string }> {
@@ -216,7 +212,7 @@ export class ChatParticipant {
     return history
   }
 
-  /** Get the active editor's content as context. */
+  // Get the active editor's content as context.
   private getEditorContext(): string | undefined {
     const editor = vscode.window.activeTextEditor
     if (!editor) return undefined
@@ -228,7 +224,7 @@ export class ChatParticipant {
     return editor.document.getText()
   }
 
-  /** Create an AbortSignal from a VS Code CancellationToken. */
+  // Create an AbortSignal from a VS Code CancellationToken.
   private createAbortSignal(token: vscode.CancellationToken): AbortSignal {
     const controller = new AbortController()
     token.onCancellationRequested(() => {
@@ -238,11 +234,8 @@ export class ChatParticipant {
     return controller.signal
   }
 
-  /** Open the chat view in VS Code. */
+  // Open the chat view with our participant
   static async openChat(): Promise<void> {
-    // Open the chat view with our participant
-    await vscode.commands.executeCommand('workbench.action.chat.open', {
-      participant: 'LEMON_CHAT'
-    })
+    await vscode.commands.executeCommand('workbench.action.chat.open', { participant: 'LEMON_CHAT' })
   }
 }

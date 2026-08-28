@@ -1,20 +1,20 @@
 import { ChildProcess, exec, spawn } from 'child_process'
-import * as fs from 'fs'
-import * as path from 'path'
 import { promisify } from 'util'
-import * as vscode from 'vscode'
-import { ExtensionContext, window } from 'vscode'
-const { showErrorMessage, showInformationMessage, showWarningMessage } = window
-const { showInputBox, showQuickPick } = window
-
 const execAsync = promisify(exec)
 
+import * as fs from 'fs'
+import * as path from 'path'
+
+import { ConfigurationTarget, ExtensionContext, ProgressLocation, QuickPickItem, WorkspaceConfiguration } from 'vscode'
+import { window, workspace } from 'vscode'
+const { showErrorMessage, showInformationMessage, showInputBox, showQuickPick, showWarningMessage } = window
+
 import { BinaryManager } from './binaryManager'
+import { getModelLabel } from './modelLabel'
 import { LemonadeClient } from './lemonadeClient'
 import { Logger } from './logger'
-import { ServerStatus, TargetServer, type ServerInstance } from './interfaces'
-import { getModelLabel } from './modelLabel'
 import { refreshEvents } from './events'
+import { ServerStatus, TargetServer, type ServerInstance } from './interfaces'
 
 /**
  * Manages the Lemonade Server process lifecycle.
@@ -37,7 +37,7 @@ export class ServerManager {
 
   constructor(private context: ExtensionContext, private binaryManager: BinaryManager) {
     // Read configured ports so the getters/URLs reflect user settings immediately.
-    const config = vscode.workspace.getConfiguration('lemon')
+    const config = workspace.getConfiguration('lemon')
     const mode = config.get<TargetServer>('targetServer', TargetServer.STANDALONE)
     this._embedPort = config.get<number>('embeddedPort', 8000)
     this._standalonePort = config.get<number>('standalonePort', 13305)
@@ -99,7 +99,7 @@ export class ServerManager {
    * none is configured, e.g. custom mode with no URL).
    */
   async getActiveServer(): Promise<ServerInstance | null> {
-    const config = vscode.workspace.getConfiguration('lemon')
+    const config = workspace.getConfiguration('lemon')
     const mode = config.get<TargetServer>('targetServer', TargetServer.STANDALONE)
 
     let instance: ServerInstance | null
@@ -122,7 +122,7 @@ export class ServerManager {
   }
 
   /** Fetch the standalone Lemonade server status. */
-  private async fetchStandaloneServer(config: vscode.WorkspaceConfiguration): Promise<ServerInstance | null> {
+  private async fetchStandaloneServer(config: WorkspaceConfiguration): Promise<ServerInstance | null> {
     const standalonePort = config.get<number>('standalonePort', 13305)
     const client = new LemonadeClient(`http://localhost:${standalonePort}`)
     try {
@@ -148,7 +148,7 @@ export class ServerManager {
   }
 
   /** Fetch the custom Lemonade server status. */
-  private async fetchCustomServer(config: vscode.WorkspaceConfiguration): Promise<ServerInstance | null> {
+  private async fetchCustomServer(config: WorkspaceConfiguration): Promise<ServerInstance | null> {
     const customUrl = config.get<string>('customServerUrl', '')
     if (!customUrl) return null
     const client = new LemonadeClient(customUrl)
@@ -175,7 +175,7 @@ export class ServerManager {
   }
 
   /** Fetch the embedded lemon server status. */
-  private async fetchEmbeddedServer(config: vscode.WorkspaceConfiguration): Promise<ServerInstance | null> {
+  private async fetchEmbeddedServer(config: WorkspaceConfiguration): Promise<ServerInstance | null> {
     if (this._status !== ServerStatus.RUNNING) {
       return {
         id: 'lemond',
@@ -197,7 +197,7 @@ export class ServerManager {
       if (typeof health.max_loaded_models === 'number' && Number.isInteger(health.max_loaded_models)) {
         maxLoadedModels = health.max_loaded_models
         if (config.get<number>('maxLoadedModels', 1) !== maxLoadedModels) {
-          await config.update('maxLoadedModels', maxLoadedModels, vscode.ConfigurationTarget.Global)
+          await config.update('maxLoadedModels', maxLoadedModels, ConfigurationTarget.Global)
           Logger.info(`Synced lemon.maxLoadedModels from server to ${maxLoadedModels}`)
         }
       }
@@ -236,7 +236,7 @@ export class ServerManager {
     try {
       await window.withProgress(
         {
-          location: vscode.ProgressLocation.Notification,
+          location: ProgressLocation.Notification,
           title: `Loading model: ${name}`,
           cancellable: false
         },
@@ -269,7 +269,7 @@ export class ServerManager {
           showInformationMessage('No models are currently loaded')
           return
         }
-        const items: vscode.QuickPickItem[] = loadedModels.map((m) => ({ label: m }))
+        const items: QuickPickItem[] = loadedModels.map((m) => ({ label: m }))
         const selected = await showQuickPick(items, {
           title: 'Select a model to unload',
           placeHolder: 'Choose a model'
@@ -286,7 +286,7 @@ export class ServerManager {
     try {
       await window.withProgress(
         {
-          location: vscode.ProgressLocation.Notification,
+          location: ProgressLocation.Notification,
           title: `Unloading model: ${name}`,
           cancellable: false
         },
@@ -321,7 +321,7 @@ export class ServerManager {
           showInformationMessage('No downloaded models to remove')
           return
         }
-        const items: vscode.QuickPickItem[] = models.map((m) => ({
+        const items: QuickPickItem[] = models.map((m) => ({
           label: m.id,
           description: getModelLabel(m) ?? m.owned_by ?? ''
         }))
@@ -348,7 +348,7 @@ export class ServerManager {
 
       await window.withProgress(
         {
-          location: vscode.ProgressLocation.Notification,
+          location: ProgressLocation.Notification,
           title: `Removing model: ${name}`,
           cancellable: false
         },
@@ -372,8 +372,8 @@ export class ServerManager {
    * embedded server is running, pushes it to the running server immediately.
    */
   async setMaxLoadedModels(value: number): Promise<void> {
-    const config = vscode.workspace.getConfiguration('lemon')
-    await config.update('maxLoadedModels', value, vscode.ConfigurationTarget.Global)
+    const config = workspace.getConfiguration('lemon')
+    await config.update('maxLoadedModels', value, ConfigurationTarget.Global)
     Logger.info(`Set lemon.maxLoadedModels to ${value}`)
 
     if (this._status === ServerStatus.RUNNING) {
@@ -410,7 +410,7 @@ export class ServerManager {
         showWarningMessage('No models available. Pull a model first.')
         return undefined
       }
-      const items: vscode.QuickPickItem[] = models.map((m) => ({
+      const items: QuickPickItem[] = models.map((m) => ({
         label: m.id,
         description: getModelLabel(m) ?? m.owned_by ?? ''
       }))
@@ -453,7 +453,7 @@ export class ServerManager {
 
   /** Apply the configured `lemon.targetServer` to the in-memory server selection. */
   applyConfiguredServerMode(): void {
-    const config = vscode.workspace.getConfiguration('lemon')
+    const config = workspace.getConfiguration('lemon')
     const mode = config.get<TargetServer>('targetServer', TargetServer.STANDALONE)
     switch (mode) {
       case TargetServer.STANDALONE:
@@ -474,7 +474,7 @@ export class ServerManager {
 
   // Switch the selected server
   async selectServer(): Promise<void> {
-    const config = vscode.workspace.getConfiguration('lemon')
+    const config = workspace.getConfiguration('lemon')
     const standalonePort = config.get<number>('standalonePort', 13305)
     const embeddedPort = config.get<number>('embeddedPort', 8000)
     const standaloneUrl = `http://localhost:${standalonePort}`
@@ -482,7 +482,7 @@ export class ServerManager {
     let defaultUrl = config.get<string>('customServerUrl', '')
 
     const mode = config.get<TargetServer>('targetServer', TargetServer.STANDALONE)
-    const items: vscode.QuickPickItem[] = []
+    const items: QuickPickItem[] = []
 
     if (mode !== TargetServer.STANDALONE) {
       items.push({
@@ -517,10 +517,10 @@ export class ServerManager {
 
     // Select the chosen server
     if (selected.label.includes('Standalone')) {
-      await config.update('targetServer', TargetServer.STANDALONE, vscode.ConfigurationTarget.Global)
+      await config.update('targetServer', TargetServer.STANDALONE, ConfigurationTarget.Global)
       this.setSelectedServer(standaloneUrl, 'Standalone Lemonade')
     } else if (selected.label.includes('lemon')) {
-      await config.update('targetServer', TargetServer.EMBEDDED, vscode.ConfigurationTarget.Global)
+      await config.update('targetServer', TargetServer.EMBEDDED, ConfigurationTarget.Global)
       this.setSelectedServer(embeddedUrl, 'lemon (Embedded)')
     } else {
       if (!defaultUrl) {
@@ -534,8 +534,8 @@ export class ServerManager {
       }
       if (!defaultUrl) return
       // Save to config and select
-      await config.update('targetServer', TargetServer.CUSTOM, vscode.ConfigurationTarget.Global)
-      await config.update('customServerUrl', defaultUrl, vscode.ConfigurationTarget.Global)
+      await config.update('targetServer', TargetServer.CUSTOM, ConfigurationTarget.Global)
+      await config.update('customServerUrl', defaultUrl, ConfigurationTarget.Global)
       this.setSelectedServer(defaultUrl, 'Custom Server')
     }
   }
@@ -555,7 +555,7 @@ export class ServerManager {
 
   /** Start the Lemonade Server. */
   async start(): Promise<boolean> {
-    const config = vscode.workspace.getConfiguration('lemon')
+    const config = workspace.getConfiguration('lemon')
     const serverMode = config.get<TargetServer>('targetServer', TargetServer.STANDALONE)
 
     // Custom mode: connect to a user-configured URL instead of launching a process.
@@ -678,7 +678,7 @@ export class ServerManager {
     // Use default cache directory to avoid Windows permission issues.
     try {
       const configPath = path.join(workingDir, 'config.json')
-      const config = vscode.workspace.getConfiguration('lemon')
+      const config = workspace.getConfiguration('lemon')
       const maxLoadedModels = config.get<number>('maxLoadedModels', 1)
       const configData = {
         port: this._embedPort,

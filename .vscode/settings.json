@@ -15,6 +15,9 @@
     "esbuild",
     "lanly",
     "lemond",
+    "llamacpp",
+    "pids",
+    "pullable",
     "reranking",
     "Treeview"
   ],

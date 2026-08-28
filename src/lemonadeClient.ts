@@ -22,18 +22,18 @@ export class LemonadeClient {
     this.baseUrl = url.replace(/\/+$/, '')
   }
 
-  /** Update the base URL (e.g., when port changes). */
+  // Update the base URL (e.g., when port changes).
   updatePort(port: number): void {
     this.baseUrl = `http://localhost:${port}`
   }
 
-  /** Set a custom base URL. */
+  // Set a custom base URL.
   setBaseUrl(url: string): void {
     // Clean trailing slashes
     this.baseUrl = url.replace(/\/+$/, '')
   }
 
-  /** Make a generic HTTP request to the server. */
+  // Make a generic HTTP request to the server.
   private request(
     method: string,
     path: string,
@@ -63,7 +63,7 @@ export class LemonadeClient {
     })
   }
 
-  /** Check if the server is healthy. */
+  // Check if the server is healthy.
   async checkHealth(): Promise<boolean> {
     try {
       const { status, data } = await this.request('GET', '/v1/health')
@@ -78,7 +78,7 @@ export class LemonadeClient {
     }
   }
 
-  /** Get the health response with details. */
+  // Get the health response with details.
   async getHealth(): Promise<HealthResponse> {
     const { status, data } = await this.request('GET', '/v1/health')
     if (status !== 200) throw new Error(`Health check failed: ${status} ${data}`)
@@ -136,7 +136,7 @@ export class LemonadeClient {
     await this.unloadModel()
   }
 
-  /** Pull (download) a model from the server registry. */
+  // Pull (download) a model from the server registry.
   async pullModel(modelName: string, onProgress?: (progress: string) => void): Promise<void> {
     Logger.info(`Pulling model: ${modelName}`)
 
@@ -236,7 +236,7 @@ export class LemonadeClient {
     })
   }
 
-  /** Parse a single `/v1/pull` streaming event into a progress update. */
+  // Parse a single `/v1/pull` streaming event into a progress update.
   private parsePullEvent(line: string):
     { status?: string, pct: number, written?: number, total?: number, message: string } {
     let parsed: PullStreamEvent
@@ -282,7 +282,7 @@ export class LemonadeClient {
     Logger.info(`Model deleted: ${modelName}`)
   }
 
-  /** Update server configuration (e.g., max_loaded_models). */
+  // Update server configuration (e.g., max_loaded_models).
   async updateConfig(config: Record<string, unknown>): Promise<void> {
     Logger.info(`Updating server configuration: ${JSON.stringify(config)}`)
     const { status, data } = await this.request('POST', '/v1/config', config)
@@ -290,9 +290,7 @@ export class LemonadeClient {
     Logger.info('Server configuration updated successfully')
   }
 
-  /**
-   * Send a chat completion request (non-streaming).
-   */
+  // Send a chat completion request (non-streaming).
   async chatCompletion(
     request: ChatCompletionRequest
   ): Promise<ChatCompletionResponse> {
@@ -409,9 +407,7 @@ export class LemonadeClient {
     })
   }
 
-  /**
-   * Build a system prompt for code-related tasks.
-   */
+  // Build a system prompt for code-related tasks.
   static buildSystemPrompt(command?: string): string {
     const base = 'You are a helpful AI assistant running locally via Lemonade Server.'
     if (command === 'fix') {
@@ -426,9 +422,7 @@ export class LemonadeClient {
     return base
   }
 
-  /**
-   * Convert VS Code chat messages to OpenAI format.
-   */
+  // Convert VS Code chat messages to OpenAI format.
   static toChatMessages(
     prompt: string,
     history: Array<{ role: string, content: string }>,
