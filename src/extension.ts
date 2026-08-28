@@ -87,58 +87,7 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.env.openExternal(vscode.Uri.parse(url))
   })
 
-  const d16 = rc('lemon.editServerPort', async () => {
-    const config = vscode.workspace.getConfiguration('lemon')
-    const mode = config.get<string>('targetServer', 'standalone')
-
-    // Custom mode edits the URL; standalone/embedded edit the port.
-    if (mode === 'custom') {
-      const current = config.get<string>('customServerUrl', '') || 'http://localhost:13305'
-      const url = await vscode.window.showInputBox({
-        title: 'Custom Server URL',
-        prompt: 'Enter the Lemonade Server URL (e.g., http://localhost:13305)',
-        placeHolder: 'http://localhost:13305',
-        value: current,
-        validateInput: (input) => {
-          const trimmed = input.trim()
-          if (!trimmed) return 'Please enter a URL'
-          if (!/^https?:\/\//i.test(trimmed)) return 'URL must start with http:// or https://'
-          return undefined
-        }
-      })
-      if (url === undefined || url.trim() === '') return
-      await config.update('customServerUrl', url.trim(), vscode.ConfigurationTarget.Global)
-      vscode.window.showInformationMessage(`Custom server URL updated to ${url.trim()}`)
-    } else {
-      const isEmbedded = mode === 'embedded'
-      const key = isEmbedded ? 'embeddedPort' : 'standalonePort'
-      const current = config.get<number>(key, isEmbedded ? 8000 : 13305)
-
-      const value = await vscode.window.showInputBox({
-        title: isEmbedded ? 'Embedded Server Port' : 'Standalone Server Port',
-        prompt: `Current: ${current}. Enter the port for the ` +
-          `${isEmbedded ? 'embedded' : 'standalone'} Lemonade Server.`,
-        value: String(current),
-        validateInput: (input) => {
-          const trimmed = input.trim()
-          if (!trimmed) return 'Please enter a port number'
-          const n = Number(trimmed)
-          if (!Number.isInteger(n) || n < 1 || n > 65535) return 'Enter a valid port (1-65535)'
-          return undefined
-        }
-      })
-      if (value === undefined || value.trim() === '') return
-      const port = Number(value.trim())
-      await config.update(key, port, vscode.ConfigurationTarget.Global)
-      vscode.window.showInformationMessage(
-        `${isEmbedded ? 'Embedded' : 'Standalone'} server port updated to ${port}`
-      )
-    }
-
-    // applyConfiguredServerMode + refresh are handled onDidChangeConfiguration,
-    // but refresh explicitly so the new URL/port is reflected immediately.
-    refreshEvents.fire()
-  })
+  const d16 = rc('lemon.editServerPort', () => serverManager.editServerPort())
 
   context.subscriptions.push(d1, d2, d4, d5, d6, d7, d8, d9, d10, d11, d13, d14, d15, d16, d17, d18)
 
