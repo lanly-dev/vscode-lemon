@@ -23,46 +23,45 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const d1 = rc('lemon.startServer', serverManager.start)
   const d2 = rc('lemon.stopServer', serverManager.stop)
-  const d4 = rc('lemon.downloadBinary', binaryManager.downloadBinary)
-  const d5 = rc('lemon.openChat', ChatParticipant.openChat)
-  const d6 = rc('lemon.openSettings', openSetting)
-  const d7 = rc('lemon.pullModel', () => modelManager.pullModel())
-  const d8 = rc('lemon.loadModel', (item: { modelId: string }) => modelManager.loadModel(item.modelId))
-  const d9 = rc('lemon.unloadModel', (item: { modelId: string }) => modelManager.unloadModel(item.modelId))
-  const d10 = rc('lemon.selectChatModel', async () =>  modelManager.selectChatModel(chatParticipant))
-  const d11 = rc('lemon.refreshServer', () => refreshEvents.fire())
-  const d13 = rc('lemon.setMaxLoadedModels', modelManager.setMaxLoadedModels)
-  const d14 = rc('lemon.selectServer', serverManager.selectServer)
-  const d15 = rc('lemon.openServerUrl', openUrl)
-  const d16 = rc('lemon.editServerPort', serverManager.editServerPort)
+  const d3 = rc('lemon.downloadBinary', binaryManager.downloadBinary)
+  const d4 = rc('lemon.openChat', ChatParticipant.openChat)
+  const d5 = rc('lemon.openSettings', openSetting)
+  const d6 = rc('lemon.pullModel', () => modelManager.pullModel())
+  const d7 = rc('lemon.loadModel', (item: { modelId: string }) => modelManager.loadModel(item.modelId))
+  const d8 = rc('lemon.unloadModel', (item: { modelId: string }) => modelManager.unloadModel(item.modelId))
+  const d9 = rc('lemon.selectChatModel', async () => modelManager.selectChatModel(chatParticipant))
+  const d10 = rc('lemon.refreshServer', () => refreshEvents.fire())
+  const d11 = rc('lemon.setMaxLoadedModels', modelManager.setMaxLoadedModels)
+  const d12 = rc('lemon.selectServer', serverManager.selectServer)
+  const d13 = rc('lemon.openServerUrl', openUrl)
+  const d14 = rc('lemon.editServerPort', serverManager.editServerPort)
 
-  const d17 = rc('lemon.removeModel', async (item: { modelId: string }) => modelManager.deleteModel(item.modelId))
-  const d18 = rc('lemon.retryModel', (item: { modelId: string }) => modelManager.startPull(item.modelId))
+  const d15 = rc('lemon.removeModel', async (item: { modelId: string }) => modelManager.deleteModel(item.modelId))
+  const d16 = rc('lemon.retryModel', (item: { modelId: string }) => modelManager.startPull(item.modelId))
+  const d17 = listenConfigsChange(serverManager)
 
-  context.subscriptions.push(d1, d2, d4, d5, d6, d7, d8, d9, d10, d11, d13, d14, d15, d16, d17, d18)
+  context.subscriptions.push(d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15, d16)
 
-  // Re-apply the selected server mode when the relevant settings change
-  context.subscriptions.push(
-    vscode.workspace.onDidChangeConfiguration(async (e) => {
-      if (
-        e.affectsConfiguration('lemon.targetServer')
-        || e.affectsConfiguration('lemon.customServerUrl')
-        || e.affectsConfiguration('lemon.standalonePort')
-        || e.affectsConfiguration('lemon.embeddedPort')
-      ) {
-        serverManager.applyConfiguredServerMode()
-
-        // When the user switches away from embedded mode, stop the
-        // local embedded process — it's no longer the active server.
-        const config = vscode.workspace.getConfiguration('lemon')
-        const newMode = config.get<string>('targetServer', 'standalone')
-        if (newMode !== 'embedded') await serverManager.stop()
-
-        refreshEvents.fire()
-      }
-    })
-  )
   binaryManager.checkForUpdates()
+}
+
+function listenConfigsChange(serverManager: ServerManager) {
+  return vscode.workspace.onDidChangeConfiguration(async (e) => {
+    const settings = ['lemon.targetServer', 'lemon.customServerUrl', 'lemon.standalonePort', 'lemon.embeddedPort']
+
+    if (settings.some((setting) => e.affectsConfiguration(setting))) {
+      serverManager.applyConfiguredServerMode()
+
+      // When the user switches away from embedded mode, stop the local embedded process
+      // it's no longer the active server.
+      const config = vscode.workspace.getConfiguration('lemon')
+      const newMode = config.get<string>('targetServer', 'standalone')
+      // TODO: Check if stop before switching away from embedded mode
+      if (newMode !== 'embedded') await serverManager.stop()
+
+      refreshEvents.fire()
+    }
+  })
 }
 
 // Register tree view for Lemonade status
