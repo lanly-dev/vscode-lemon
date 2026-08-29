@@ -40,8 +40,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const d16 = rc('lemon.retryModel', (item: { modelId: string }) => modelManager.startPull(item.modelId))
   const d17 = listenConfigsChange(serverManager)
 
-  context.subscriptions.push(d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15, d16)
-
+  context.subscriptions.push(d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15, d16, d17)
   binaryManager.checkForUpdates()
 }
 
@@ -67,10 +66,7 @@ function listenConfigsChange(serverManager: ServerManager) {
 // Register tree view for Lemonade status
 async function createTreeView(context: vscode.ExtensionContext, serverManager: ServerManager) {
   const provider = new ServerViewProvider(context, serverManager)
-  vscode.window.createTreeView('LEMON_TREEVIEW', {
-    treeDataProvider: provider,
-    showCollapseAll: true
-  })
+  vscode.window.createTreeView('LEMON_TREEVIEW', { treeDataProvider: provider, showCollapseAll: true })
   await refreshEvents.fire()
   return provider
 }
