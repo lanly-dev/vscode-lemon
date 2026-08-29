@@ -4,6 +4,7 @@ import { window, workspace } from 'vscode'
 import { Logger } from './logger'
 import { ServerManager } from './serverManager'
 import { LemonadeModel, ServerStatus } from './interfaces'
+import type { ChatParticipant } from './chatParticipant'
 
 import type { ServerViewProvider } from './serverTreeview'
 
@@ -109,6 +110,8 @@ export class ModelManager {
           await this.client.deleteModel(modelName)
         }
       )
+      this.treeViewProvider.clearPartial(modelName)
+      this.treeViewProvider.refresh()
       showInformationMessage(`Model '${modelName}' deleted successfully`)
     } catch (err: unknown) {
       Logger.error('Failed to delete model', err)
@@ -164,9 +167,13 @@ export class ModelManager {
    * Prompts the user to pick a model from the available ones.
    * Resolves to the selected model name, or undefined if cancelled/error.
    */
-  async selectModel(): Promise<string | undefined> {
+  async selectChatModel(chatParticipant: ChatParticipant): Promise<void> {
     if (!await this.serverManager.ensureRunning()) return undefined
-    return this.promptForModel('Select active model for chat')
+    const selected = await this.promptForModel('Select active model for chat')
+    if (!selected) return
+    // TODO: what is vscode.ChatParticipant about
+    chatParticipant.setSelectedModel(selected)
+    showInformationMessage(`Selected model for chat: ${selected}`)
   }
 
   /** Show a quick pick of the available models and return the selected model name. */

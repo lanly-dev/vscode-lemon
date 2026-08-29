@@ -88,16 +88,15 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
       pct,
       message: pct >= 0 ? `${Math.round(pct)}% downloaded` : 'download incomplete'
     })
-    void this.persistPartials()
+    this.persistPartials()
     this.refresh()
   }
 
   /** Forget an incomplete download (e.g. after a successful re-pull or remove). */
   clearPartial(modelId: string): void {
-    if (this._partials.delete(modelId)) {
-      void this.persistPartials()
-      this.refresh()
-    }
+    if (!this._partials.delete(modelId)) return
+    this.persistPartials()
+    this.refresh()
   }
 
   /** Persist the current incomplete downloads so they survive a reload. */

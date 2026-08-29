@@ -7,7 +7,7 @@ import { ModelManager } from './modelManager'
 import { ServerManager } from './serverManager'
 import { ServerViewProvider } from './serverTreeview'
 
-import { openSetting } from './utils'
+import { openSetting, openUrl } from './utils'
 import { refreshEvents } from './events'
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -17,6 +17,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const binaryManager = new BinaryManager(context)
   const serverManager = new ServerManager(binaryManager)
   const provider = await createTreeView(context, serverManager)
+
   const modelManager = new ModelManager(serverManager, provider)
   const chatParticipant = new ChatParticipant(context, serverManager)
 
@@ -28,40 +29,15 @@ export async function activate(context: vscode.ExtensionContext) {
   const d7 = rc('lemon.pullModel', () => modelManager.pullModel())
   const d8 = rc('lemon.loadModel', (item: { modelId: string }) => modelManager.loadModel(item.modelId))
   const d9 = rc('lemon.unloadModel', (item: { modelId: string }) => modelManager.unloadModel(item.modelId))
-
-  const d17 = rc('lemon.removeModel', async (item: { modelId: string }) => {
-    await modelManager.deleteModel(item.modelId)
-    provider.clearPartial(item.modelId)
-    refreshEvents.fire()
-  })
-
-  const d18 = rc('lemon.retryModel', (item: { modelId: string }) => modelManager.startPull(item.modelId))
-
-  const d10 = rc('lemon.selectModel', async () => {
-    const selected = await modelManager.selectModel()
-    if (!selected) return
-    chatParticipant.setSelectedModel(selected)
-    vscode.window.showInformationMessage(`Selected model: ${selected}`)
-  })
-
+  const d10 = rc('lemon.selectChatModel', async () =>  modelManager.selectChatModel(chatParticipant))
   const d11 = rc('lemon.refreshServer', () => refreshEvents.fire())
-
-  const d14 = rc('lemon.selectServer', async () => {
-    await serverManager.selectServer()
-    refreshEvents.fire()
-  })
-
-  const d13 = rc('lemon.setMaxLoadedModels', () => modelManager.setMaxLoadedModels())
-
-  const d15 = rc('lemon.openServerUrl', (item?: vscode.TreeItem) => {
-    const label = item?.label
-    if (!label) return
-    const url = typeof label === 'string' ? label : label.label
-    if (!url) return
-    vscode.env.openExternal(vscode.Uri.parse(url))
-  })
-
+  const d13 = rc('lemon.setMaxLoadedModels', modelManager.setMaxLoadedModels)
+  const d14 = rc('lemon.selectServer', serverManager.selectServer)
+  const d15 = rc('lemon.openServerUrl', openUrl)
   const d16 = rc('lemon.editServerPort', serverManager.editServerPort)
+
+  const d17 = rc('lemon.removeModel', async (item: { modelId: string }) => modelManager.deleteModel(item.modelId))
+  const d18 = rc('lemon.retryModel', (item: { modelId: string }) => modelManager.startPull(item.modelId))
 
   context.subscriptions.push(d1, d2, d4, d5, d6, d7, d8, d9, d10, d11, d13, d14, d15, d16, d17, d18)
 

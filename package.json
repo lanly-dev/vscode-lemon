@@ -83,8 +83,8 @@
         "icon": "$(refresh)"
       },
       {
-        "command": "lemon.selectModel",
-        "title": "Lemon: Select Active Model"
+        "command": "lemon.selectChatModel",
+        "title": "Lemon: Select Chat Model"
       },
       {
         "command": "lemon.refreshServer",

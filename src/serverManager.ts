@@ -258,8 +258,13 @@ export class ServerManager {
     }
   }
 
-  /** Switch the selected server */
   async selectServer(): Promise<void> {
+    await this.selectServerHelper()
+    refreshEvents.fire()
+  }
+
+  /** Switch the selected server */
+  private async selectServerHelper(): Promise<void> {
     const config = workspace.getConfiguration('lemon')
     const standalonePort = config.get<number>('standalonePort', 13305)
     const embeddedPort = config.get<number>('embeddedPort', 8000)

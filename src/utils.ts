@@ -15,3 +15,11 @@ export function formatBytes(value: number): string {
 export function openSetting(): void {
   vscode.commands.executeCommand('workbench.action.openSettings', '@ext:lanly-dev.lemon')
 }
+
+export function openUrl(item: vscode.TreeItem): void {
+  const label = item?.label
+  if (!label) return
+  const url = typeof label === 'string' ? label : label.label
+  if (!url) return
+  vscode.env.openExternal(vscode.Uri.parse(url))
+}
