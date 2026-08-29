@@ -4,11 +4,15 @@
   "description": "Run a local AI chat server powered by Lemonade Server directly in VS Code",
   "publisher": "lanly-dev",
   "version": "0.0.1",
+  "sponsor": {
+    "url": "https://github.com/sponsors/lanly-dev"
+  },
   "engines": {
     "vscode": "^1.134.0"
   },
   "categories": [
-    "AI"
+    "AI",
+    "Chat"
   ],
   "activationEvents": [
     "onStartupFinished"
@@ -265,5 +269,13 @@
     "ovsx": "^1.1.1",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.68.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanly-dev/vscode-lemon.git"
+  },
+  "bugs": {
+    "url": "https://github.com/lanly-dev/vscode-lemon/issues"
+  },
+  "license": "MIT"
 }
