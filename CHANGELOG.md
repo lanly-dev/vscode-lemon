@@ -10,7 +10,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 - Initial release
 - Focused on managing models through treeview
 - Chat integration with chat models
-- 9 files, 46.76 KB, 1.136, req1.134
+- 9 files, 46.75 KB, 1.136, req1.134
 
 ```
 lemon-0.0.1.vsix
@@ -30,3 +30,7 @@ lemon-0.0.1.vsix
 
 ### Reference
 - https://lemonade-server.ai
+- https://code.visualstudio.com/api/references/extension-manifest
+
+### Notes
+- `name` and `displayName` need to be unique in vsce marketplace
