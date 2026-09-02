@@ -1,9 +1,9 @@
 # Lemon 🍋
 A VS Code extension that downloads, hosts, and runs the [Lemonade Server](https://lemonade-server.ai/) embeddable binary (`lemond`) locally, enabling AI chat with local LLMs directly in VS Code.
-<a href="https://marketplace.visualstudio.com/items?itemName=	lanly-dev.lemon" target="_blank">
+<a href="https://marketplace.visualstudio.com/items?itemName=	lanly-dev.chanh" target="_blank">
   <img src='https://code.visualstudio.com/favicon.ico' width='10'/>
 </a>
-<a href="https://open-vsx.org/extension/lanly-dev/lemon" target="_blank">
+<a href="https://open-vsx.org/extension/lanly-dev/chanh" target="_blank">
   <img src='https://open-vsx.org/favicon.ico' width='10'/>
 </a>
 
