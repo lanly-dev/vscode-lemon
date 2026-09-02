@@ -19,7 +19,8 @@
     "pids",
     "pullable",
     "reranking",
-    "Treeview"
+    "Treeview",
+    "vsixmanifest"
   ],
   "editor.rulers": [
     120
