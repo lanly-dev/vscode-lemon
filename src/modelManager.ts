@@ -274,16 +274,27 @@ export class ModelManager {
       async (progress, token) => {
         // Cancel the underlying HTTP request when the user dismisses the popup.
         token.onCancellationRequested(() => abortController.abort())
-        let lastPct = 0
+        let lastReportedPct = 0
 
         try {
           await client.pullModelStream(
             modelId,
             (p) => {
-              if (p.pct >= 0) lastPct = p.pct
-              // Show the % number live in the popup.
-              const pctText = p.pct >= 0 ? `${Math.round(p.pct)}%` : ''
-              progress.report({ message: [pctText, p.message].filter(Boolean).join(' ') || 'Downloading...' })
+              if (p.pct >= 0) {
+                // Calculate increment for the progress bar
+                const increment = p.pct - lastReportedPct
+                lastReportedPct = p.pct
+                console.log(`Progress for model ${modelId}: ${p.pct}%`)
+                progress.report({
+                  message: `${Math.round(p.pct)}%${p.message ? ' - ' + p.message : ''}`,
+                  increment: Math.max(0, increment)
+                })
+              } else {
+                // Unknown progress - just update message
+                progress.report({
+                  message: p.message || 'Downloading...'
+                })
+              }
               // Tree updates are throttled to every 5% inside updateDownload.
               this.treeViewProvider.updateDownload(modelId, p.pct, p.message, p.written, p.total)
             },
@@ -298,14 +309,14 @@ export class ModelManager {
           this.treeViewProvider.endDownload(modelId)
           if (token.isCancellationRequested) {
             Logger.warn(`Model download cancelled: ${modelId}`)
-            this.treeViewProvider.markPartial(modelId, lastPct)
+            this.treeViewProvider.markPartial(modelId, lastReportedPct)
             this.treeViewProvider.refresh()
             showInformationMessage(
               `Cancelled pulling '${modelId}'. The partial download is now listed under "Incomplete Downloads".`
             )
           } else {
             Logger.error('Failed to pull model', err)
-            this.treeViewProvider.markPartial(modelId, lastPct)
+            this.treeViewProvider.markPartial(modelId, lastReportedPct)
             this.treeViewProvider.refresh()
             showErrorMessage(`Failed to pull model: ${err}`)
           }

@@ -162,6 +162,7 @@ export class LemonadeClient {
     const body = JSON.stringify({ model_name: modelName, stream: true })
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      Accept: 'text/event-stream',
       'Content-Length': Buffer.byteLength(body).toString()
     }
 
@@ -170,6 +171,9 @@ export class LemonadeClient {
         `${this.baseUrl}/v1/pull`,
         { method: 'POST', headers },
         (res) => {
+          Logger.info(`Pull response status: ${res.statusCode}`)
+          Logger.info(`Pull response headers: ${JSON.stringify(res.headers)}`)
+
           if (res.statusCode !== 200) {
             let errorData = ''
             res.on('data', (chunk: Buffer) => { errorData += chunk.toString() })
@@ -180,6 +184,7 @@ export class LemonadeClient {
           }
 
           let buffer = ''
+          let dataReceived = false
           const handleLine = (line: string): void => {
             const trimmed = line.trim()
             if (!trimmed) return
@@ -199,6 +204,8 @@ export class LemonadeClient {
           }
 
           res.on('data', (chunk: Buffer) => {
+            dataReceived = true
+            // Logger.info(`Pull data chunk: ${chunk.toString().substring(0, 200)}`)
             buffer += chunk.toString()
             const lines = buffer.split('\n')
             buffer = lines.pop() ?? ''
@@ -206,6 +213,7 @@ export class LemonadeClient {
           })
 
           res.on('end', () => {
+            if (!dataReceived) Logger.warn('Pull response ended without receiving any data')
             if (buffer.trim()) handleLine(buffer)
             resolve()
           })
@@ -235,24 +243,28 @@ export class LemonadeClient {
   /** Parse a single `/v1/pull` streaming event into a progress update. */
   private parsePullEvent(line: string):
     { status?: string, pct: number, written?: number, total?: number, message: string } {
-    let parsed: PullStreamEvent
+    let parsed: PullStreamEvent & { percent?: number, bytes_downloaded?: number }
     try {
-      parsed = JSON.parse(line) as PullStreamEvent
+      parsed = JSON.parse(line)
     } catch {
       return { pct: -1, message: line }
     }
 
     let pct = -1
-    const { progress, bytes_written, bytes_total } = parsed
-    if (typeof progress === 'number') {
+    const { progress, percent, bytes_written, bytes_downloaded, bytes_total } = parsed
+
+    // Prefer `percent` field (0-100) sent by server
+    if (typeof percent === 'number') pct = percent
+    else if (typeof progress === 'number') {
       // Tolerate both a 0-1 fraction and a 0-100 percentage.
       pct = progress <= 1 ? progress * 100 : progress
     } else if (
-      typeof bytes_written === 'number'
+      (typeof bytes_written === 'number' || typeof bytes_downloaded === 'number')
       && typeof bytes_total === 'number'
       && bytes_total > 0
     ) {
-      const ratio = bytes_written / bytes_total
+      const written = bytes_written ?? bytes_downloaded ?? 0
+      const ratio = written / bytes_total
       pct = ratio * 100
     }
     if (pct >= 0) pct = Math.min(100, Math.max(0, pct))
@@ -263,7 +275,7 @@ export class LemonadeClient {
     return {
       status: parsed.status,
       pct,
-      written: typeof bytes_written === 'number' ? bytes_written : undefined,
+      written: (bytes_written ?? bytes_downloaded) ?? (typeof bytes_total === 'number' ? 0 : undefined),
       total: typeof bytes_total === 'number' ? bytes_total : undefined,
       message
     }

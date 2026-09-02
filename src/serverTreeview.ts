@@ -59,14 +59,14 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
 
   /**
    * Update live download progress, refreshing the tree only when the progress
-   * crosses a 5% step (so we don't re-render the whole tree on every event).
+   * crosses a 2% step (so we don't re-render the whole tree on every event).
    */
   updateDownload(modelId: string, pct: number, message: string, written?: number, total?: number): void {
     const current = this._downloads.get(modelId)
     if (!current) return
 
-    const bucket = pct >= 0 ? Math.floor(pct / 5) : -1
-    const currentBucket = current.pct >= 0 ? Math.floor(current.pct / 5) : -1
+    const bucket = pct >= 0 ? Math.floor(pct / 2) : -1
+    const currentBucket = current.pct >= 0 ? Math.floor(current.pct / 2) : -1
     const shouldRefresh = bucket !== currentBucket && current.pct !== 0
 
     this._downloads.set(modelId, { modelId, pct, written, total, message })
@@ -130,8 +130,8 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
     serverHeader.tooltip = `Active server: ${displayName}\nURL: ${displayUrl}`
     items.push(serverHeader)
 
+    // Loaded models section
     if (this._activeServer?.status === ServerStatus.RUNNING) {
-      // Loaded models section
       const loadedModels = this._activeServer?.health?.all_models_loaded || []
 
       const loadedHeader = new TreeItem(`Loaded Models (${loadedModels.length})`, Expanded)
@@ -221,8 +221,8 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
       items.push(maxModelsItem)
     }
 
+    // Pinned models section
     if (this._activeServer?.status === ServerStatus.RUNNING) {
-      // Pinned models section
       const pinnedModels = this._activeServer?.health?.pinned_models
       const pinnedEntries = pinnedModels ? Object.entries(pinnedModels) : []
       const pinnedCount = pinnedEntries.reduce((sum, [, count]) => sum + (count ?? 0), 0)
