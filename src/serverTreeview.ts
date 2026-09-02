@@ -336,9 +336,13 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
       const item = new TreeItem(model.id, None) as vscode.TreeItem & { modelId: string }
       item.modelId = model.id
 
-      // Show the model's category label (e.g. "Transcription", "Image") as subtext.
+      // Build subtext: category label + size
       const modelLabel = ModelManager.getModelLabel(model)
-      if (modelLabel) item.description = modelLabel
+      const sizeText = model.size && model.size > 0
+        ? (model.size >= 1024 ? `${(model.size / 1024).toFixed(1)} TB` : `${model.size.toFixed(2)} GB`)
+        : ''
+      const subtextParts = [modelLabel, sizeText].filter(Boolean)
+      if (subtextParts.length > 0) item.description = subtextParts.join(' · ')
 
       if (isLoaded) {
         item.iconPath = new vscode.ThemeIcon('pass-filled', new vscode.ThemeColor('charts.green'))
