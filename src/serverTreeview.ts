@@ -161,17 +161,12 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
 
 
     // Available models section
-    if (this._activeServer?.models && this._activeServer.models.length > 0) {
+    if (this._activeServer?.models) {
       const modelsHeader = new TreeItem(`Available Models (${this._activeServer.models.length})`, Expanded)
       modelsHeader.iconPath = new vscode.ThemeIcon('list-tree')
       modelsHeader.contextValue = 'LEMOND_MODELS_HEADER'
-      modelsHeader.tooltip = this._activeServer.id
+      modelsHeader.tooltip = this._activeServer?.id
       items.push(modelsHeader)
-    } else if (this._activeServer?.status === ServerStatus.RUNNING) {
-      const noModels = new TreeItem('No models available', None)
-      noModels.iconPath = new vscode.ThemeIcon('circle-filled')
-      noModels.tooltip = 'Pull a model using the "Lemonade: Pull Model" command'
-      items.push(noModels)
     }
     return items
   }
@@ -332,6 +327,11 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
     if (!server?.models) return []
 
     const loadedIds = new Set(server.health?.all_models_loaded.map((m) => m.model_name) ?? [])
+    if (server.models.length === 0) {
+      const noModelsItem = new TreeItem('No models available, please pull a model.', None)
+      noModelsItem.iconPath = new vscode.ThemeIcon('circle-filled')
+      return [noModelsItem]
+    }
     return server.models.map((model) => {
       const isLoaded = loadedIds.has(model.id)
       const item = new TreeItem(model.id, None) as vscode.TreeItem & { modelId: string }
