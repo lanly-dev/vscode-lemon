@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 
 import { TreeDataProvider, TreeItem, TreeItemCollapsibleState } from 'vscode'
-const { None, Expanded } = TreeItemCollapsibleState
+const { Collapsed, Expanded, None } = TreeItemCollapsibleState
 
 import { refreshEvents } from './events'
 import { ServerManager } from './serverManager'
@@ -130,15 +130,17 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
     serverHeader.tooltip = `Active server: ${displayName}\nURL: ${displayUrl}`
     items.push(serverHeader)
 
-    // Loaded models section
-    const loadedModels = this._activeServer?.health?.all_models_loaded || []
+    if (this._activeServer?.status === ServerStatus.RUNNING) {
+      // Loaded models section
+      const loadedModels = this._activeServer?.health?.all_models_loaded || []
 
-    const loadedHeader = new TreeItem(`Loaded Models (${loadedModels.length})`, Expanded)
-    let color
-    if (loadedModels.length) color = new vscode.ThemeColor('charts.yellow')
-    loadedHeader.iconPath = new vscode.ThemeIcon('zap', color)
-    loadedHeader.contextValue = 'LEMOND_LOADED_HEADER'
-    items.push(loadedHeader)
+      const loadedHeader = new TreeItem(`Loaded Models (${loadedModels.length})`, Expanded)
+      let color
+      if (loadedModels.length) color = new vscode.ThemeColor('charts.yellow')
+      loadedHeader.iconPath = new vscode.ThemeIcon('zap', color)
+      loadedHeader.contextValue = 'LEMOND_LOADED_HEADER'
+      items.push(loadedHeader)
+    }
 
     // Downloading models section - only shown while a model is being pulled.
     if (this._downloads.size > 0) {
@@ -219,16 +221,18 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
       items.push(maxModelsItem)
     }
 
-    // Pinned models section
-    const pinnedModels = this._activeServer?.health?.pinned_models
-    const pinnedEntries = pinnedModels ? Object.entries(pinnedModels) : []
-    const pinnedCount = pinnedEntries.reduce((sum, [, count]) => sum + (count ?? 0), 0)
+    if (this._activeServer?.status === ServerStatus.RUNNING) {
+      // Pinned models section
+      const pinnedModels = this._activeServer?.health?.pinned_models
+      const pinnedEntries = pinnedModels ? Object.entries(pinnedModels) : []
+      const pinnedCount = pinnedEntries.reduce((sum, [, count]) => sum + (count ?? 0), 0)
 
-    const pinnedHeader = new TreeItem(`Pinned Models (${pinnedCount})`, Expanded)
-    const pinnedColor = pinnedCount > 0 ? new vscode.ThemeColor('charts.blue') : undefined
-    pinnedHeader.iconPath = new vscode.ThemeIcon('pin', pinnedColor)
-    pinnedHeader.contextValue = 'LEMOND_PINNED_HEADER'
-    items.push(pinnedHeader)
+      const pinnedHeader = new TreeItem(`Pinned Models (${pinnedCount})`, Collapsed)
+      const pinnedColor = pinnedCount > 0 ? new vscode.ThemeColor('charts.blue') : undefined
+      pinnedHeader.iconPath = new vscode.ThemeIcon('pin', pinnedColor)
+      pinnedHeader.contextValue = 'LEMOND_PINNED_HEADER'
+      items.push(pinnedHeader)
+    }
 
     // Error message if any
     if (server.error) {
