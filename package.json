@@ -1,6 +1,6 @@
 {
   "name": "chanh",
-  "displayName": "Lemon 🍋",
+  "displayName": "Lemon",
   "description": "Run a local AI server powered by Lemonade Server directly in VS Code",
   "publisher": "lanly-dev",
   "version": "0.0.1",

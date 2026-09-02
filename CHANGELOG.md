@@ -10,7 +10,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 - Initial release
 - Focused on managing models through treeview
 - Chat integration with chat models
-- 9 files, 46.73 KB, 1.136, req1.134
+- 9 files, 46.71 KB, 1.136, req1.134
 
 ```
 lemon-0.0.1.vsix
