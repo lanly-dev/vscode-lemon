@@ -138,7 +138,6 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
     if (loadedModels.length) color = new vscode.ThemeColor('charts.yellow')
     loadedHeader.iconPath = new vscode.ThemeIcon('zap', color)
     loadedHeader.contextValue = 'LEMOND_LOADED_HEADER'
-    loadedHeader.tooltip = this._activeServer?.id
     items.push(loadedHeader)
 
     // Downloading models section - only shown while a model is being pulled.
@@ -146,7 +145,6 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
       const downloadingHeader = new TreeItem(`Downloading Models (${this._downloads.size})`, Expanded)
       downloadingHeader.iconPath = new vscode.ThemeIcon('cloud-download', new vscode.ThemeColor('charts.blue'))
       downloadingHeader.contextValue = 'LEMOND_DOWNLOADING_HEADER'
-      downloadingHeader.tooltip = this._activeServer?.id
       items.push(downloadingHeader)
     }
 
@@ -155,7 +153,6 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
       const partialHeader = new TreeItem(`Incomplete Downloads (${this._partials.size})`, Expanded)
       partialHeader.iconPath = new vscode.ThemeIcon('warning', new vscode.ThemeColor('charts.yellow'))
       partialHeader.contextValue = 'LEMOND_PARTIAL_HEADER'
-      partialHeader.tooltip = this._activeServer?.id
       items.push(partialHeader)
     }
 
@@ -165,7 +162,6 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
       const modelsHeader = new TreeItem(`Available Models (${this._activeServer.models.length})`, Expanded)
       modelsHeader.iconPath = new vscode.ThemeIcon('list-tree')
       modelsHeader.contextValue = 'LEMOND_MODELS_HEADER'
-      modelsHeader.tooltip = this._activeServer?.id
       items.push(modelsHeader)
     }
     return items
@@ -232,7 +228,6 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
     const pinnedColor = pinnedCount > 0 ? new vscode.ThemeColor('charts.blue') : undefined
     pinnedHeader.iconPath = new vscode.ThemeIcon('pin', pinnedColor)
     pinnedHeader.contextValue = 'LEMOND_PINNED_HEADER'
-    pinnedHeader.tooltip = this._activeServer?.id
     items.push(pinnedHeader)
 
     // Error message if any
@@ -245,7 +240,7 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
   }
 
   private getLoadedModelChildren(element: vscode.TreeItem): TreeItem[] {
-    const server = this.findServerByTooltip(element.tooltip)
+    const server = this._activeServer
     if (!server?.health) return []
     const loadedModels = server.health.all_models_loaded
 
@@ -300,7 +295,7 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
   }
 
   private getPinnedModelChildren(element: vscode.TreeItem): TreeItem[] {
-    const server = this.findServerByTooltip(element.tooltip)
+    const server = this._activeServer
     const pinned = server?.health?.pinned_models
     if (!pinned) return []
 
@@ -323,7 +318,7 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
   }
 
   private getModelChildren(element: vscode.TreeItem): vscode.TreeItem[] {
-    const server = this.findServerByTooltip(element.tooltip)
+    const server = this._activeServer
     if (!server?.models) return []
 
     const loadedIds = new Set(server.health?.all_models_loaded.map((m) => m.model_name) ?? [])
@@ -351,13 +346,6 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
       }
       return item
     })
-  }
-
-  /** Find a server instance by its tooltip id. */
-  private findServerByTooltip(tooltip: vscode.TreeItem['tooltip']): ServerInstance | null {
-    const id = typeof tooltip === 'string' ? tooltip : ''
-    if (this._activeServer?.id === id) return this._activeServer
-    return null
   }
 
   /** Fetch server data for all known server instances. */

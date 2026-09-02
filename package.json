@@ -145,11 +145,6 @@
           "group": "navigation"
         },
         {
-          "command": "lemon.pullModel",
-          "when": "view == LEMON_TREEVIEW",
-          "group": "navigation"
-        },
-        {
           "command": "lemon.openSettings",
           "when": "view == LEMON_TREEVIEW",
           "group": "navigation"
@@ -169,6 +164,11 @@
         {
           "command": "lemon.editServerPort",
           "when": "view == LEMON_TREEVIEW && viewItem == LEMOND_SERVER_URL",
+          "group": "inline"
+        },
+        {
+          "command": "lemon.pullModel",
+          "when": "view == LEMON_TREEVIEW && viewItem == LEMOND_MODELS_HEADER",
           "group": "inline"
         },
         {
