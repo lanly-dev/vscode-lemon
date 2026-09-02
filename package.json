@@ -1,7 +1,7 @@
 {
-  "name": "lemon",
-  "displayName": "Lemon 🍋 - run your free local AI",
-  "description": "Run a local AI chat server powered by Lemonade Server directly in VS Code",
+  "name": "chanh",
+  "displayName": "Lemon 🍋",
+  "description": "Run a local AI server powered by Lemonade Server directly in VS Code",
   "publisher": "lanly-dev",
   "version": "0.0.1",
   "sponsor": {
@@ -16,13 +16,14 @@
   ],
   "keywords": [
     "ai",
+    "chanh",
     "chat",
     "free",
     "lemon",
     "lemonade",
     "llm",
-    "models",
-    "local"
+    "local",
+    "models"
   ],
   "activationEvents": [
     "onStartupFinished"
