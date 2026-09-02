@@ -45,6 +45,9 @@ You can choose which Lemonade server the extension uses by setting **`lemon.targ
 
 ## Release Notes
 
+### 0.0.2
+- Add icon
+
 ### 0.0.1
 - Lemonade management treeview
 - Chat integration
