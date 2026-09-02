@@ -4,6 +4,7 @@
 esbuild.js
 eslint.config.mjs
 media/lemon-old.svg
+media/treeview.png
 tsconfig.json
 vsc-extension-quickstart.md
 

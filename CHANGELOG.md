@@ -4,13 +4,13 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 - Explore and add functionality for different types of models
-- Focus on coding-related development
+- Focus on coding-related function
 
 ## [0.0.1] - 2026-09-02
-- Initial release/pre-release
-- Focused on managing models
+- Initial release
+- Focused on managing models through treeview
 - Chat integration with chat models
-- 9 files, 46.41 KB, 1.136, req1.134
+- 9 files, 46.69 KB, 1.136, req1.134
 
 ```
 lemon-0.0.1.vsix
@@ -18,12 +18,15 @@ lemon-0.0.1.vsix
 ├─ extension.vsixmanifest
 └─ extension/
    ├─ LICENSE.txt [1.06 KB]
-   ├─ changelog.md [0.42 KB]
+   ├─ changelog.md [0.89 KB]
    ├─ package.json [8.34 KB]
-   ├─ readme.md [2.04 KB]
+   ├─ readme.md [2.55 KB]
    ├─ dist/
    │  └─ extension.js [46.96 KB]
    └─ media/
       ├─ lemon.png [25.9 KB]
       └─ lemon.svg [0.94 KB]
 ```
+
+### Reference
+- https://lemonade-server.ai
