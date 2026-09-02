@@ -39,7 +39,7 @@ You can choose which Lemonade server the extension uses by setting **`lemon.targ
 
 | Value | Behavior |
 |-------|----------|
-| `standalone` (default) | Connects to an existing system-installed standalone Lemonade Server; the extension does **not** start an embedded server. |
+| `standalone` (default) | Connects to an existing system-installed standalone Lemonade Server. |
 | `embedded` | Always starts the bundled `lemond` binary. |
 | `custom` | Connects to the URL in `lemon.customServerUrl`. |
 
