@@ -1,6 +1,6 @@
 {
   "name": "lemon",
-  "displayName": "Lemon 🍋",
+  "displayName": "Lemon 🍋 - run your free local AI",
   "description": "Run a local AI chat server powered by Lemonade Server directly in VS Code",
   "publisher": "lanly-dev",
   "version": "0.0.1",
