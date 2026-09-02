@@ -14,6 +14,16 @@
     "AI",
     "Chat"
   ],
+  "keywords": [
+    "ai",
+    "chat",
+    "free",
+    "lemon",
+    "lemonade",
+    "llm",
+    "models",
+    "local"
+  ],
   "activationEvents": [
     "onStartupFinished"
   ],

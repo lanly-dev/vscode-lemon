@@ -16,7 +16,7 @@ A VS Code extension that downloads, hosts, and runs the [Lemonade Server](https:
 - Managing/downloading lemonade models
 - Chatting integration
 
-<img src='https://github.com/lanly-dev/vscode-emc/blob/main/media/treeview.png?raw=true' width='450'/>
+<img src='https://github.com/lanly-dev/vscode-lemon/blob/main/media/treeview.png?raw=true' width='450'/>
 
 ## Chat Commands
 The `@lemon` chat participant supports the following slash commands:
