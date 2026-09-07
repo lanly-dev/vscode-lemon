@@ -2,6 +2,7 @@ import * as vscode from 'vscode'
 
 import { BinaryManager } from './binaryManager'
 import { ChatParticipant } from './chatParticipant'
+import { LemonLanguageModelProvider } from './langModelsProvider'
 import { Logger } from './logger'
 import { ModelManager } from './modelManager'
 import { ServerManager } from './serverManager'
@@ -21,6 +22,9 @@ export async function activate(context: vscode.ExtensionContext) {
   const modelManager = new ModelManager(serverManager, provider)
   const chatParticipant = new ChatParticipant(context, serverManager)
 
+  // Expose Lemonade models in the native VS Code model picker (like Ollama).
+  const lmProvider = new LemonLanguageModelProvider(serverManager)
+
   const d1 = rc('lemon.startServer', () => serverManager.start())
   const d2 = rc('lemon.stopServer', () => serverManager.stop())
   const d3 = rc('lemon.downloadBinary', () => binaryManager.downloadBinary())
@@ -39,8 +43,10 @@ export async function activate(context: vscode.ExtensionContext) {
   const d15 = rc('lemon.removeModel', async (item: { modelId: string }) => modelManager.deleteModel(item.modelId))
   const d16 = rc('lemon.retryModel', (item: { modelId: string }) => modelManager.startPull(item.modelId))
   const d17 = listenConfigsChange(serverManager)
+  const d18 = lmProvider.register()
+  const d19 = lmProvider
 
-  context.subscriptions.push(d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15, d16, d17)
+  context.subscriptions.push(d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15, d16, d17, d18, d19)
   binaryManager.checkForUpdates()
 }
 
