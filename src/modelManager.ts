@@ -41,9 +41,13 @@ export class ModelManager {
     if (l.startsWith('transcri')) return 'transcription'
     if (l === 'tts' || l.includes('speech')) return 'tts'
     if (l === 'image' || l.includes('vision')) return 'image'
-    if (l === 'hot') return 'hot'
     if (l.startsWith('3d') || l.startsWith('trellis')) return '3d'
     return undefined
+  }
+
+  /** Whether the model carries the server's "hot" marker label. */
+  static isHotModel(model: Pick<LemonadeModel, 'labels'>): boolean {
+    return (model.labels ?? []).some((l) => l.toLowerCase() === 'hot')
   }
 
   /**

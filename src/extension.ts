@@ -4,6 +4,7 @@ import { BinaryManager } from './binaryManager'
 import { ChatParticipant } from './chatParticipant'
 import { LemonLanguageModelProvider } from './langModelsProvider'
 import { Logger } from './logger'
+import { ModelDecorationProvider } from './modelDecorations'
 import { ModelManager } from './modelManager'
 import { ServerManager } from './serverManager'
 import { ServerViewProvider } from './serverTreeview'
@@ -46,8 +47,14 @@ export async function activate(context: vscode.ExtensionContext) {
   const d18 = lmProvider.register()
   const d19 = lmProvider
   const d20 = rc('lemon.toggleModelGrouping', () => provider.toggleModelGrouping())
+  const d21 = vscode.window.registerFileDecorationProvider(
+    new ModelDecorationProvider()
+  )
 
-  context.subscriptions.push(d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15, d16, d17, d18, d19, d20)
+  context.subscriptions.push(
+    d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15, d16, d17, d18,
+    d19, d20, d21
+  )
   binaryManager.checkForUpdates()
 }
 

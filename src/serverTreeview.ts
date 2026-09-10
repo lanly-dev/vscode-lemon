@@ -11,9 +11,11 @@ import { formatBytes } from './utils'
 
 import type { DownloadProgress, LemonadeModel, ServerInstance } from './interfaces'
 
+import { ModelDecorationProvider } from './modelDecorations'
+
 /** Capability grouping order and display titles for the tree view. */
 const CAPABILITY_ORDER = [
-  'llm', 'embedding', 'reranking', 'classification', 'transcription', 'tts', 'image', '3d', 'hot'
+  'llm', 'embedding', 'reranking', 'classification', 'transcription', 'tts', 'image', '3d'
 ]
 
 const CAPABILITY_TITLES: Readonly<Record<string, string>> = {
@@ -25,7 +27,6 @@ const CAPABILITY_TITLES: Readonly<Record<string, string>> = {
   tts: 'Text-to-Speech',
   image: 'Image',
   '3d': '3D',
-  hot: 'Hot',
   other: 'Other'
 }
 
@@ -376,6 +377,10 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
     const item = new TreeItem(model.id, None) as vscode.TreeItem & { modelId: string }
     item.modelId = model.id
 
+    // Loaded models get a green label via the FileDecoration provider
+    // (the tree-item API has no direct way to color label text).
+    item.resourceUri = ModelDecorationProvider.uriFor(model.id, isLoaded)
+
     // Subtext: category label + size
     const modelLabel = ModelManager.getModelLabel(model)
     const sizeText = model.size && model.size > 0
@@ -384,14 +389,20 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
     const subtextParts = [modelLabel, sizeText].filter(Boolean)
     if (subtextParts.length > 0) item.description = subtextParts.join(' · ')
 
-    if (isLoaded) {
-      item.iconPath = new vscode.ThemeIcon('pass-filled', new vscode.ThemeColor('charts.green'))
-      item.contextValue = 'LEMOND_MODEL_LOADED'
-    } else {
-      item.iconPath = new vscode.ThemeIcon('circle')
-      item.tooltip = `Model: ${modelLabel ? `${model.id} (${modelLabel})` : model.id}`
-      item.contextValue = 'LEMOND_MODEL_AVAILABLE'
-    }
+    const isHot = ModelManager.isHotModel(model)
+    let tooltip = `Model: ${modelLabel ? `${model.id} (${modelLabel})` : model.id}`
+    tooltip += isLoaded ? '\nLoaded' : '\nNot loaded'
+    if (isHot) tooltip += '\nHot model'
+
+    // Unloaded hot models wear the flame; loaded models keep the green
+    // check so the loaded state stays visible.
+    if (isHot && !isLoaded) item.iconPath = vscode.Uri.joinPath(this.context.extensionUri, 'media', 'capabilities', 'hot.svg')
+    else if (isLoaded) item.iconPath = new vscode.ThemeIcon('pass-filled', new vscode.ThemeColor('charts.green'))
+    else item.iconPath = new vscode.ThemeIcon('circle')
+    item.tooltip = tooltip
+
+    if (isLoaded) item.contextValue = 'LEMOND_MODEL_LOADED'
+    else item.contextValue = 'LEMOND_MODEL_AVAILABLE'
     return item
   }
 
