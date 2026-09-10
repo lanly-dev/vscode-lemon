@@ -9,10 +9,31 @@ import { ServerStatus } from './interfaces'
 import { ModelManager } from './modelManager'
 import { formatBytes } from './utils'
 
-import type { DownloadProgress, ServerInstance } from './interfaces'
+import type { DownloadProgress, LemonadeModel, ServerInstance } from './interfaces'
+
+/** Capability grouping order and display titles for the tree view. */
+const CAPABILITY_ORDER = [
+  'llm', 'embedding', 'reranking', 'classification', 'transcription', 'tts', 'image', '3d', 'hot'
+]
+
+const CAPABILITY_TITLES: Readonly<Record<string, string>> = {
+  llm: 'LLM / Chat',
+  embedding: 'Embedding',
+  reranking: 'Reranking',
+  classification: 'Classification',
+  transcription: 'Transcription',
+  tts: 'Text-to-Speech',
+  image: 'Image',
+  '3d': '3D',
+  hot: 'Hot',
+  other: 'Other'
+}
 
 /** Storage key used to persist incomplete downloads across sessions. */
 const PARTIALS_STORAGE_KEY = 'partialDownloads'
+
+/** Storage key for the models-grouped-by-capability toggle. */
+const GROUP_MODELS_KEY = 'groupModelsByCapability'
 
 /**
  * Tree data provider for the Servers view.
@@ -30,6 +51,9 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
   /** Partial (incomplete) downloads, keyed by model id. */
   private _partials = new Map<string, DownloadProgress>()
 
+  /** Whether available models are grouped by capability. */
+  private _groupModels = false
+
   constructor(private context: vscode.ExtensionContext, private serverManager: ServerManager) {
     // Refresh whenever another part of the extension fires the shared event,
     // or when the underlying server status changes.
@@ -45,6 +69,15 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
         message: pct >= 0 ? `${Math.round(pct)}% downloaded` : 'download incomplete'
       })
     }
+
+    this._groupModels = this.context.workspaceState.get<boolean>(GROUP_MODELS_KEY, false)
+  }
+
+  /** Flip the group-models-by-capability toggle, persist it, and refresh. */
+  toggleModelGrouping(): void {
+    this._groupModels = !this._groupModels
+    void this.context.workspaceState.update(GROUP_MODELS_KEY, this._groupModels)
+    this.refresh()
   }
 
   refresh(): void {
@@ -176,6 +209,7 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
     if (element.contextValue === 'LEMOND_PARTIAL_HEADER') return this.getPartialDownloadChildren()
     if (element.contextValue === 'LEMOND_PINNED_HEADER') return this.getPinnedModelChildren(element)
     if (element.contextValue === 'LEMOND_MODELS_HEADER') return this.getModelChildren(element)
+    if (element.contextValue === 'LEMOND_CAP_GROUP') return this.getCapabilityGroupChildren(element)
     return []
   }
 
@@ -325,35 +359,90 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
     const server = this._activeServer
     if (!server?.models) return []
 
-    const loadedIds = new Set(server.health?.all_models_loaded.map((m) => m.model_name) ?? [])
     if (server.models.length === 0) {
       const noModelsItem = new TreeItem('No models available, please pull a model.', None)
       noModelsItem.iconPath = new vscode.ThemeIcon('circle-filled')
       return [noModelsItem]
     }
-    return server.models.map((model) => {
-      const isLoaded = loadedIds.has(model.id)
-      const item = new TreeItem(model.id, None) as vscode.TreeItem & { modelId: string }
-      item.modelId = model.id
 
-      // Build subtext: category label + size
-      const modelLabel = ModelManager.getModelLabel(model)
-      const sizeText = model.size && model.size > 0
-        ? (model.size >= 1024 ? `${(model.size / 1024).toFixed(1)} TB` : `${model.size.toFixed(2)} GB`)
-        : ''
-      const subtextParts = [modelLabel, sizeText].filter(Boolean)
-      if (subtextParts.length > 0) item.description = subtextParts.join(' · ')
+    if (this._groupModels) return this.getCapabilityGroups(server.models)
 
-      if (isLoaded) {
-        item.iconPath = new vscode.ThemeIcon('pass-filled', new vscode.ThemeColor('charts.green'))
-        item.contextValue = 'LEMOND_MODEL_LOADED'
-      } else {
-        item.iconPath = new vscode.ThemeIcon('circle')
-        item.tooltip = `Model: ${modelLabel ? `${model.id} (${modelLabel})` : model.id}`
-        item.contextValue = 'LEMOND_MODEL_AVAILABLE'
+    const loadedIds = new Set(server.health?.all_models_loaded.map((m) => m.model_name) ?? [])
+    return server.models.map((model) => this.toModelItem(model, loadedIds.has(model.id)))
+  }
+
+  /** Build one available-model leaf row (shared by flat and grouped modes). */
+  private toModelItem(model: LemonadeModel, isLoaded: boolean): vscode.TreeItem {
+    const item = new TreeItem(model.id, None) as vscode.TreeItem & { modelId: string }
+    item.modelId = model.id
+
+    // Subtext: category label + size
+    const modelLabel = ModelManager.getModelLabel(model)
+    const sizeText = model.size && model.size > 0
+      ? (model.size >= 1024 ? `${(model.size / 1024).toFixed(1)} TB` : `${model.size.toFixed(2)} GB`)
+      : ''
+    const subtextParts = [modelLabel, sizeText].filter(Boolean)
+    if (subtextParts.length > 0) item.description = subtextParts.join(' · ')
+
+    if (isLoaded) {
+      item.iconPath = new vscode.ThemeIcon('pass-filled', new vscode.ThemeColor('charts.green'))
+      item.contextValue = 'LEMOND_MODEL_LOADED'
+    } else {
+      item.iconPath = new vscode.ThemeIcon('circle')
+      item.tooltip = `Model: ${modelLabel ? `${model.id} (${modelLabel})` : model.id}`
+      item.contextValue = 'LEMOND_MODEL_AVAILABLE'
+    }
+    return item
+  }
+
+  /** Group available models under one collapsible header per capability. */
+  private getCapabilityGroups(models: LemonadeModel[]): vscode.TreeItem[] {
+    const grouped = new Map<string, LemonadeModel[]>()
+    for (const model of models) {
+      const categories = ModelManager.getCapabilityCategories(model)
+      // A multi-capability model appears under every capability it has, so
+      // nothing is hidden from a group it belongs to.
+      if (categories.length === 0) categories.push('other')
+      for (const category of categories) {
+        const bucket = grouped.get(category) ?? []
+        bucket.push(model)
+        grouped.set(category, bucket)
       }
-      return item
-    })
+    }
+
+    const order = [...CAPABILITY_ORDER, 'other']
+    return order
+      .filter((category) => grouped.has(category))
+      .map((category) => {
+        const bucket = grouped.get(category) ?? []
+        const title = CAPABILITY_TITLES[category] ?? category
+        const item = new TreeItem(`${title} (${bucket.length})`, Expanded)
+        item.contextValue = 'LEMOND_CAP_GROUP'
+        ;(item as vscode.TreeItem & { capability: string }).capability = category
+        item.tooltip = `${bucket.length} model(s) with ${title} capability`
+        // Capability groups wear the matching colored SVG; "other" gets a dot.
+        item.iconPath = category === 'other'
+          ? new vscode.ThemeIcon('circle-filled')
+          : vscode.Uri.joinPath(this.context.extensionUri, 'media', 'capabilities', `${category}.svg`)
+        return item
+      })
+  }
+
+  /** Available models under one capability group header. */
+  private getCapabilityGroupChildren(element: vscode.TreeItem): vscode.TreeItem[] {
+    const capability = (element as vscode.TreeItem & { capability?: string }).capability
+    const server = this._activeServer
+    if (!capability || !server?.models) return []
+
+    const loadedIds = new Set(server.health?.all_models_loaded.map((m) => m.model_name) ?? [])
+    return server.models
+      .filter((m) => {
+        // Multi-capability models live in every group they belong to.
+        const categories = ModelManager.getCapabilityCategories(m)
+        if (categories.length === 0) return capability === 'other'
+        return categories.includes(capability)
+      })
+      .map((m) => this.toModelItem(m, loadedIds.has(m.id)))
   }
 
   /** Fetch server data for all known server instances. */

@@ -31,6 +31,35 @@ export class ModelManager {
     return model.type
   }
 
+  /** Canonical capability category for a raw model label/type, when recognized. */
+  private static capabilityFor(raw: string): string | undefined {
+    const l = raw.toLowerCase()
+    if (l === 'chat' || l === 'llm') return 'llm'
+    if (l === 'embedding') return 'embedding'
+    if (l.startsWith('rerank')) return 'reranking'
+    if (l.startsWith('classif')) return 'classification'
+    if (l.startsWith('transcri')) return 'transcription'
+    if (l === 'tts' || l.includes('speech')) return 'tts'
+    if (l === 'image' || l.includes('vision')) return 'image'
+    if (l === 'hot') return 'hot'
+    if (l.startsWith('3d') || l.startsWith('trellis')) return '3d'
+    return undefined
+  }
+
+  /**
+   * Map a model's capability labels to ALL matching capability categories,
+   * deduped in match order. Category names double as the SVG filenames under
+   * media/capabilities/. Returns an empty array when nothing matches.
+   */
+  static getCapabilityCategories(model: Pick<LemonadeModel, 'labels' | 'type'>): string[] {
+    const categories: string[] = []
+    for (const label of [...(model.labels ?? []), model.type ?? '']) {
+      const category = ModelManager.capabilityFor(label)
+      if (category && !categories.includes(category)) categories.push(category)
+    }
+    return categories
+  }
+
   constructor(private serverManager: ServerManager, private treeViewProvider: ServerViewProvider) { }
 
   /** The client bound to the currently selected server. */

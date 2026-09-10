@@ -85,6 +85,11 @@
         "icon": "$(cloud-download)"
       },
       {
+        "command": "lemon.toggleModelGrouping",
+        "title": "Lemon: Toggle Model Grouping by Capability",
+        "icon": "$(group-by-ref-type)"
+      },
+      {
         "command": "lemon.loadModel",
         "title": "Lemon: Load Model",
         "icon": "$(run-above)"
@@ -186,6 +191,11 @@
         },
         {
           "command": "lemon.pullModel",
+          "when": "view == LEMON_TREEVIEW && viewItem == LEMOND_MODELS_HEADER",
+          "group": "inline"
+        },
+        {
+          "command": "lemon.toggleModelGrouping",
           "when": "view == LEMON_TREEVIEW && viewItem == LEMOND_MODELS_HEADER",
           "group": "inline"
         },
