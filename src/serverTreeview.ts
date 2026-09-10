@@ -373,7 +373,7 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
   }
 
   /** Build one available-model leaf row (shared by flat and grouped modes). */
-  private toModelItem(model: LemonadeModel, isLoaded: boolean): vscode.TreeItem {
+  private toModelItem(model: LemonadeModel, isLoaded: boolean, showHotFlame = false): vscode.TreeItem {
     const item = new TreeItem(model.id, None) as vscode.TreeItem & { modelId: string }
     item.modelId = model.id
 
@@ -381,24 +381,27 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
     // (the tree-item API has no direct way to color label text).
     item.resourceUri = ModelDecorationProvider.uriFor(model.id, isLoaded)
 
-    // Subtext: category label + size
+    // Subtext: size only (the capability label is not listed here anymore)
     const modelLabel = ModelManager.getModelLabel(model)
     const sizeText = model.size && model.size > 0
       ? (model.size >= 1024 ? `${(model.size / 1024).toFixed(1)} TB` : `${model.size.toFixed(2)} GB`)
       : ''
-    const subtextParts = [modelLabel, sizeText].filter(Boolean)
-    if (subtextParts.length > 0) item.description = subtextParts.join(' · ')
+    if (sizeText) item.description = sizeText
 
     const isHot = ModelManager.isHotModel(model)
     let tooltip = `Model: ${modelLabel ? `${model.id} (${modelLabel})` : model.id}`
     tooltip += isLoaded ? '\nLoaded' : '\nNot loaded'
     if (isHot) tooltip += '\nHot model'
 
-    // Unloaded hot models wear the flame; loaded models keep the green
-    // check so the loaded state stays visible.
-    if (isHot && !isLoaded) item.iconPath = vscode.Uri.joinPath(this.context.extensionUri, 'media', 'capabilities', 'hot.svg')
-    else if (isLoaded) item.iconPath = new vscode.ThemeIcon('pass-filled', new vscode.ThemeColor('charts.green'))
-    else item.iconPath = new vscode.ThemeIcon('circle')
+    // Unloaded hot models wear the flame when grouped by capability; in the
+    // flat list the flame is suppressed so no per-model marker is needed.
+    if (showHotFlame && isHot && !isLoaded)
+      item.iconPath = vscode.Uri.joinPath(this.context.extensionUri, 'media', 'capabilities', 'hot.svg')
+    else if (isLoaded)
+      item.iconPath = new vscode.ThemeIcon('pass-filled', new vscode.ThemeColor('charts.green'))
+    else
+      item.iconPath = new vscode.ThemeIcon('circle')
+
     item.tooltip = tooltip
 
     if (isLoaded) item.contextValue = 'LEMOND_MODEL_LOADED'
@@ -429,7 +432,7 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
         const title = CAPABILITY_TITLES[category] ?? category
         const item = new TreeItem(`${title} (${bucket.length})`, Expanded)
         item.contextValue = 'LEMOND_CAP_GROUP'
-        ;(item as vscode.TreeItem & { capability: string }).capability = category
+          ; (item as vscode.TreeItem & { capability: string }).capability = category
         item.tooltip = `${bucket.length} model(s) with ${title} capability`
         // Capability groups wear the matching colored SVG; "other" gets a dot.
         item.iconPath = category === 'other'
@@ -453,7 +456,7 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
         if (categories.length === 0) return capability === 'other'
         return categories.includes(capability)
       })
-      .map((m) => this.toModelItem(m, loadedIds.has(m.id)))
+      .map((m) => this.toModelItem(m, loadedIds.has(m.id), true))
   }
 
   /** Fetch server data for all known server instances. */
