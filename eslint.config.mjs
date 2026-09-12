@@ -35,6 +35,8 @@ export default [{
     'max-len': ['error', { code: 120 }],
     'no-throw-literal': 'warn',
     'no-trailing-spaces': 'error',
+    'no-multiple-empty-lines': 'error',
+    'no-unexpected-multiline': 'error',
     'quote-props': ['error', 'as-needed'],
     curly: ['error', 'multi-or-nest'],
     eqeqeq: 'error',

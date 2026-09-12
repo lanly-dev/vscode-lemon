@@ -432,7 +432,7 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem> {
         const title = CAPABILITY_TITLES[category] ?? category
         const item = new TreeItem(`${title} (${bucket.length})`, Expanded)
         item.contextValue = 'LEMOND_CAP_GROUP'
-          ; (item as vscode.TreeItem & { capability: string }).capability = category
+        ; (item as vscode.TreeItem & { capability: string }).capability = category
         item.tooltip = `${bucket.length} model(s) with ${title} capability`
         // Capability groups wear the matching colored SVG; "other" gets a dot.
         item.iconPath = category === 'other'
