@@ -119,6 +119,25 @@ export class ModelManager {
   }
 
   /**
+   * The backend pinned in the live server config for a recipe, or undefined
+   * when the recipe is on `auto` or the config cannot be read.
+   */
+  private async readPinnedBackend(recipe: string): Promise<string | undefined> {
+    try {
+      const config = await this.client.getConfig()
+      const section = config[recipe]
+      if (section && typeof section === 'object') {
+        const backend = (section as Record<string, unknown>).backend
+        if (typeof backend === 'string' && backend !== 'auto') return backend
+      }
+      return undefined
+    } catch (err: unknown) {
+      Logger.warn(`Could not read pinned backend for ${recipe}: ${err}`)
+      return undefined
+    }
+  }
+
+  /**
    * Pick which backend (accelerator) a model's recipe should use, and pin it on
    * the server. Only backends `/v1/system-info` reports as usable are offered;
    * an `installable` one is installed on confirmation, while an `unsupported`
@@ -160,10 +179,13 @@ export class ModelManager {
       return
     }
 
-    const current = recipeInfo?.default_backend
+    // Show the pinned backend as the current selection when one is set, and the
+    // server's `auto` default otherwise. Read live from `/internal/config`
+    // because the pinned value is not visible in `/v1/system-info`.
+    const current = await this.readPinnedBackend(recipe) ?? recipeInfo?.default_backend
     const items: Array<QuickPickItem & { backend: string, installed: boolean }> = entries.map(
       ([name, backend]) => ({
-        label: `${name}${name === current ? ' — current' : ''}`,
+        label: `${name}${name === current ? ' — current' : ''}${name === recipeInfo?.default_backend ? ' (auto)' : ''}`,
         description: backend.state === 'installed' ? 'Installed' : 'Installable',
         detail: [backend.version ? `v${backend.version}` : undefined]
           .concat(backend.devices?.length ? [backend.devices.join(', ')] : [])
@@ -206,11 +228,14 @@ export class ModelManager {
       this.treeViewProvider.refreshServer()
     }
 
-    // Pin the recipe to the chosen backend. Applied through POST /v1/config,
-    // which only accepts POST; there is no GET counterpart to read it back.
+    // Pin the recipe to the chosen backend through the server's config API.
+    // `auto` restores the server's own default selection.
     try {
       await this.client.updateConfig({ [recipe]: { backend: picked.backend } })
-      showInformationMessage(`'${recipe}' will use the '${picked.backend}' backend. Restart the server to apply.`)
+      this.treeViewProvider.refreshServer()
+      showInformationMessage(
+        `'${recipe}' backend set to '${picked.backend}'. Restart the server to apply it.`
+      )
     } catch (err: unknown) {
       Logger.error('Failed to set backend', err)
       showErrorMessage(`Failed to set backend '${picked.backend}': ${err}`)

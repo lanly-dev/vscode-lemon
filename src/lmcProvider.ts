@@ -21,8 +21,9 @@ function extractText(message: vscode.LanguageModelChatRequestMessage): string {
   const out: string[] = []
   for (const part of message.content) {
     if (part instanceof vscode.LanguageModelTextPart) out.push(part.value)
-    else if (part instanceof vscode.LanguageModelDataPart)
+    else if (part instanceof vscode.LanguageModelDataPart) {
       Logger.warn(`Dropping non-text part (mime=${part.mimeType}) in assistant message`)
+    }
   }
 
   return out.join('')

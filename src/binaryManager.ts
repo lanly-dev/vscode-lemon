@@ -91,12 +91,12 @@ export class BinaryManager {
         }
         if (res.statusCode !== 200) {
           let body = ''
-          res.on('data', (chunk) => { body += chunk })
+          res.on('data', (chunk) =>  body += chunk)
           res.on('end', () => reject(new Error(`GitHub API returned ${res.statusCode}: ${body}`)))
           return
         }
         let data = ''
-        res.on('data', (chunk) => { data += chunk })
+        res.on('data', (chunk) => data += chunk)
         res.on('end', () => {
           try {
             resolve(JSON.parse(data) as GitHubRelease)

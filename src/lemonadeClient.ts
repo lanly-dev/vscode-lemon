@@ -69,7 +69,7 @@ export class LemonadeClient {
         { method, headers },
         (res) => {
           let responseBody = ''
-          res.on('data', (chunk) => { responseBody += chunk })
+          res.on('data', (chunk) => responseBody += chunk)
           res.on('end', () => resolve({ status: res.statusCode ?? 0, data: responseBody }))
         }
       )
@@ -135,10 +135,11 @@ export class LemonadeClient {
       let message = `Failed to load model: ${status} ${data}`
 
       // TODO: Not sure if these error exist
-      if (/model_load_error/.test(data))
+      if (/model_load_error/.test(data)) {
         message = 'The model files are incomplete or invalid. Remove the model and download it again.'
-      else if (status === 409 && /slots_pinned_error/.test(data))
+      } else if (status === 409 && /slots_pinned_error/.test(data)) {
         message = 'A model of this type is already loaded. Unload it first via "Chanh: Unload Model".'
+      }
       throw new Error(message)
     }
     Logger.info(`Model loaded: ${modelName}`)
@@ -225,7 +226,7 @@ export class LemonadeClient {
 
           if (res.statusCode !== 200) {
             let errorData = ''
-            res.on('data', (chunk: Buffer) => { errorData += chunk.toString() })
+            res.on('data', (chunk: Buffer) => errorData += chunk.toString())
             res.on('end', () => {
               reject(new Error(`Failed to pull model: ${res.statusCode} ${errorData}`))
             })
@@ -357,10 +358,29 @@ export class LemonadeClient {
     Logger.info(`Backend installed: ${recipe}:${backend}`)
   }
 
-  /** Update server configuration (e.g., max_loaded_models). */
+  /**
+   * Read the live server configuration (`GET /internal/config`). Returns the
+   * merged config, including per-recipe sections such as `llamacpp.backend`.
+   * This is the only way to read back a pinned backend: `/v1/config` does not
+   * exist on the server.
+   */
+  async getConfig(): Promise<Record<string, unknown>> {
+    const { status, data } = await this.request('GET', '/internal/config')
+    if (status !== 200) throw new Error(`Failed to read config: ${status} ${data}`)
+    return JSON.parse(data)
+  }
+
+  /**
+   * Update server configuration (e.g., max_loaded_models, llamacpp.backend).
+   *
+   * The write endpoint is `POST /internal/set`, not `/v1/config`; the latter
+   * returns 404. Verified against Lemonade Server 11.7.0. The change is applied
+   * asynchronously, so a following `getConfig()` may briefly report the old
+   * value.
+   */
   async updateConfig(config: Record<string, unknown>): Promise<void> {
     Logger.info(`Updating server configuration: ${JSON.stringify(config)}`)
-    const { status, data } = await this.request('POST', '/v1/config', config)
+    const { status, data } = await this.request('POST', '/internal/set', config)
     if (status !== 200) throw new Error(`Failed to update config: ${status} ${data}`)
     Logger.info('Server configuration updated successfully')
   }
@@ -394,8 +414,9 @@ export class LemonadeClient {
         }
         if (onToolCall) {
           const ordered = [...toolCalls.entries()].sort((a, b) => a[0] - b[0])
-          for (const [, tc] of ordered)
+          for (const [, tc] of ordered) {
             onToolCall({ id: tc.id, type: 'function', function: { name: tc.name, arguments: tc.args } })
+          }
         }
         resolve(content)
       }
@@ -417,7 +438,7 @@ export class LemonadeClient {
         (res) => {
           if (res.statusCode !== 200) {
             let errorData = ''
-            res.on('data', (chunk) => { errorData += chunk })
+            res.on('data', (chunk) => errorData += chunk)
             res.on('end', () => {
               fail(new Error(`Chat completion failed: ${res.statusCode} ${errorData}`))
             })

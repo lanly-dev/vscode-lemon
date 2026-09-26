@@ -419,19 +419,43 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem>, Disposabl
   }
 
   /**
-   * The accelerator a recipe resolves to, from the cached `/v1/system-info`
-   * report. `default_backend` is what the server picks when the recipe's
-   * `backend` setting is `auto`; it is not an override-aware reading because
-   * `GET /v1/config` is unavailable, so a user-pinned backend is not visible.
+   * The accelerator a recipe resolves to. The pinned backend from
+   * `/internal/config` wins when set; otherwise this is the `auto` default the
+   * server reports in `/v1/system-info`.
    */
   private effectiveBackendFor(recipe?: string): string | undefined {
     if (!recipe) return undefined
     const data = this._systemInfo?.recipes?.[recipe]
-    const backend = data?.default_backend
-    if (!backend) return undefined
-    // Confirm the server reports this backend as usable before naming it.
+    // Confirm the server reports at least one usable backend before naming it.
     const usable = Object.values(data?.backends ?? {}).filter((b) => b.state !== 'unsupported')
-    return usable.length === 0 ? undefined : `auto (${backend})`
+    if (usable.length === 0) return undefined
+    const pinned = this._pinnedBackends.get(recipe)
+    if (pinned) return pinned
+    return data?.default_backend ? `auto (${data.default_backend})` : undefined
+  }
+
+  /**
+   * Backend values pinned via `/internal/config`, read once per session. The
+   * tree view cannot await on repaint, so this is filled in by
+   * `fetchPinnedBackends()` alongside the model snapshot.
+   */
+  private readonly _pinnedBackends = new Map<string, string>()
+
+  /** Read `recipe.backend` for every recipe that has one pinned off `auto`. */
+  private async fetchPinnedBackends(): Promise<void> {
+    this._pinnedBackends.clear()
+    try {
+      const config = await this.serverManager.client.getConfig()
+      for (const [recipe, section] of Object.entries(config)) {
+        if (!section || typeof section !== 'object') continue
+        const backend = (section as Record<string, unknown>).backend
+        if (typeof backend === 'string' && backend !== 'auto') this._pinnedBackends.set(recipe, backend)
+      }
+    } catch (err) {
+      // Older servers may not expose /internal/config; tooltips then fall back
+      // to the auto default.
+      Logger.warn(`Could not read pinned backends: ${err}`)
+    }
   }
 
   /** Number of backends this server can use: installed plus installable. */
@@ -505,7 +529,7 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem>, Disposabl
       const rows = [...group.backends]
         .sort((a, b) => Number(b.backend.state === 'installed') - Number(a.backend.state === 'installed'))
         .map(({ name, backend }) => this.toBackendItem(recipe, name, backend))
-      ; (header as TreeItem & { backendRows?: TreeItem[] }).backendRows = rows
+        ; (header as TreeItem & { backendRows?: TreeItem[] }).backendRows = rows
       return header
     })
   }
@@ -514,9 +538,7 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem>, Disposabl
   private toBackendItem(recipe: string, name: string, backend: SystemInfoBackend): TreeItem {
     const installed = backend.state === 'installed'
     const item = new TreeItem(name, None)
-    item.iconPath = installed
-      ? new ThemeIcon('pass-filled', new ThemeColor('charts.green'))
-      : new ThemeIcon('cloud-download', new ThemeColor('charts.yellow'))
+    item.iconPath = installed ? new ThemeIcon('pass-filled') : new ThemeIcon('cloud-download')
     // Show the server-reported state verbatim so installed and installable rows
     // are distinguishable at a glance.
     item.description = backend.state ?? 'unknown'
@@ -530,8 +552,9 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem>, Disposabl
   }
 
   private getChildrenForElement(element: TreeItem): TreeItem[] {
-    if ((element as TreeItem & { backendRows?: TreeItem[] }).backendRows)
+    if ((element as TreeItem & { backendRows?: TreeItem[] }).backendRows) {
       return (element as TreeItem & { backendRows: TreeItem[] }).backendRows
+    }
     if (element.contextValue === 'CHANH_SERVER_HEADER') return this.getServerChildren(this._activeServer)
     if (element.contextValue === 'CHANH_LOADED_HEADER') return this.getLoadedModelChildren(element)
     if (element.contextValue === 'CHANH_DOWNLOADING_HEADER') return this.getDownloadingChildren()
@@ -552,8 +575,9 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem>, Disposabl
     const statusItem = new TreeItem(`Status: ${text}`, None)
     statusItem.iconPath = new ThemeIcon(icon, new ThemeColor(color))
     statusItem.contextValue = `CHANH_SERVER_${server.status}`
-    if (server.status === ServerStatus.ERROR && server.error)
+    if (server.status === ServerStatus.ERROR && server.error) {
       statusItem.description = server.error
+    }
     items.push(statusItem)
 
     // Server URL
@@ -662,7 +686,7 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem>, Disposabl
         // Inline cancel button so the user can abort the pull from the row.
         // (Cast needed: the trimmed @types/vscode here omits TreeItem.buttons,
         // but the runtime API supports it.)
-        ;(item as TreeItem & { buttons?: Array<{ command: string, tooltip?: string }> }).buttons = [
+        ; (item as TreeItem & { buttons?: Array<{ command: string, tooltip?: string }> }).buttons = [
           { command: 'chanh.cancelDownload', tooltip: 'Cancel download' }
         ]
         this._downloadRows.set(download.modelId, item)
@@ -685,8 +709,9 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem>, Disposabl
     // One decimal so the percentage visibly advances on every repaint; a whole
     // number only changes ~100 times across the entire download.
     if (download.pct >= 0) subtextParts.push(`${download.pct.toFixed(1)}%`)
-    if (hasBytes)
+    if (hasBytes) {
       subtextParts.push(formatByteProgress(download.written!, download.total!))
+    }
     item.description = subtextParts.length > 0 ? subtextParts.join('  ') : download.message
   }
 
@@ -783,8 +808,9 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem>, Disposabl
     const sizeText = formatSize(model.size)
     if (sizeText) lines.push(`Size: ${sizeText}`)
 
-    if (typeof model.context_length === 'number' && model.context_length > 0)
+    if (typeof model.context_length === 'number' && model.context_length > 0) {
       lines.push(`Context: ${model.context_length.toLocaleString()} tokens`)
+    }
 
     if (model.recipe) lines.push(`Recipe: ${model.recipe}`)
     if (model.type) lines.push(`Type: ${model.type}`)
@@ -963,7 +989,10 @@ export class ServerViewProvider implements TreeDataProvider<TreeItem>, Disposabl
     this._activeServer = await this.serverManager.getActiveServer()
     this._serverDataStale = false
     // Warm the backend cache here so the section header count is right on the
-    // first paint rather than only after the section is expanded.
-    if (this._activeServer?.status === ServerStatus.RUNNING) await this.fetchSystemInfo()
+    // first paint, and so model tooltips can name the pinned backend.
+    if (this._activeServer?.status === ServerStatus.RUNNING) {
+      await this.fetchSystemInfo()
+      await this.fetchPinnedBackends()
+    }
   }
 }

@@ -30,6 +30,7 @@ export default [{
         }
       }
     ],
+    '@stylistic/brace-style': ['error', '1tbs'],
     'comma-dangle': ['error', 'never'],
     'eol-last': ['error', 'always'],
     'max-len': ['error', { code: 120 }],
@@ -38,7 +39,7 @@ export default [{
     'no-multiple-empty-lines': 'error',
     'no-unexpected-multiline': 'error',
     'quote-props': ['error', 'as-needed'],
-    curly: ['error', 'multi-or-nest'],
+    curly: ['error', 'multi-line'],
     eqeqeq: 'error',
     indent: ['error', 2, { SwitchCase: 1 }],
     quotes: ['error', 'single', { allowTemplateLiterals: true }],

@@ -855,8 +855,9 @@ export function listenConfigsChange(serverManager: ServerManager) {
 
       // Stop only on an actual LEMOND -> non-LEMOND transition, before the
       // active client is re-pointed at the newly configured server.
-      if (serverManager.wasLastAppliedMode(ServerMode.LEMOND) && newMode !== ServerMode.LEMOND)
+      if (serverManager.wasLastAppliedMode(ServerMode.LEMOND) && newMode !== ServerMode.LEMOND) {
         await serverManager.stopManagedLemond()
+      }
 
       await serverManager.applyConfiguredServerMode()
       refreshEvents.fire()
